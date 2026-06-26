@@ -113,6 +113,10 @@ type App struct {
 	serverDirSelect  *widget.Select
 	suppressSelectCB bool // 临时禁止选择回调
 	autostartCheck   *widget.Check
+
+	sysLogList *widget.List
+	sysLogs    []string
+	sysLogMu   sync.Mutex
 }
 
 func main() {
@@ -137,6 +141,8 @@ func main() {
 		fyneApp:    fyneApp,
 		mainWindow: mainWindow,
 	}
+	// 设置自定义 log writer，拦截标准日志输出到系统日志页
+	a.setupLogWriter()
 	a.buildUI()
 
 	if a.cfg.DeviceName == "" {
@@ -170,6 +176,7 @@ func (a *App) buildUI() {
 		container.NewTabItem("同步概览", a.buildOverviewTab()),
 		container.NewTabItem("连接向导", a.buildWizardTab()),
 		container.NewTabItem("传输日志", a.buildLogTab()),
+		container.NewTabItem("系统日志", a.buildSysLogTab()),
 		container.NewTabItem("设置", a.buildSettingsTab()),
 	)
 	a.mainWindow.SetContent(tabs)
@@ -817,6 +824,58 @@ func (a *App) addEvent(msg string) {
 			a.logList.ScrollTo(widget.ListItemID(newIdx))
 		}, false)
 	}
+}
+
+
+func (a *App) setupLogWriter() {
+	writer := &sysLogWriter{app: a}
+	log.SetOutput(io.MultiWriter(writer, os.Stderr))
+}
+
+type sysLogWriter struct {
+	app *App
+}
+
+func (w *sysLogWriter) Write(p []byte) (n int, err error) {
+	msg := strings.TrimSpace(string(p))
+	if msg != "" {
+		w.app.addSysLog(msg)
+	}
+	return len(p), nil
+}
+
+func (a *App) addSysLog(msg string) {
+	a.sysLogMu.Lock()
+	a.sysLogs = append(a.sysLogs, msg)
+	if len(a.sysLogs) > 1000 {
+		a.sysLogs = a.sysLogs[len(a.sysLogs)-1000:]
+	}
+	newIdx := len(a.sysLogs) - 1
+	a.sysLogMu.Unlock()
+	if a.sysLogList != nil {
+		fyne.CurrentApp().Driver().DoFromGoroutine(func() {
+			a.sysLogList.Refresh()
+			a.sysLogList.ScrollTo(widget.ListItemID(newIdx))
+		}, false)
+	}
+}
+
+func (a *App) buildSysLogTab() fyne.CanvasObject {
+	a.sysLogList = widget.NewList(
+		func() int { a.sysLogMu.Lock(); defer a.sysLogMu.Unlock(); return len(a.sysLogs) },
+		func() fyne.CanvasObject { return widget.NewLabel("") },
+		func(id widget.ListItemID, obj fyne.CanvasObject) {
+			a.sysLogMu.Lock(); defer a.sysLogMu.Unlock()
+			if id < len(a.sysLogs) { obj.(*widget.Label).SetText(a.sysLogs[id]) }
+		},
+	)
+	clearBtn := widget.NewButton("清空日志", func() {
+		a.sysLogMu.Lock()
+		a.sysLogs = nil
+		a.sysLogMu.Unlock()
+		a.sysLogList.Refresh()
+	})
+	return container.NewBorder(nil, clearBtn, nil, nil, a.sysLogList)
 }
 
 func openPath(path string) {

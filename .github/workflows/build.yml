@@ -1,4 +1,4 @@
-﻿name: Build Release
+name: Build Release
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
           path: dist/server/linux-amd64/
 
   build-clients:
-    name: Build Clients (${{ matrix.os }})
+    name: "Build Clients (${{ matrix.os }})"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -53,13 +53,6 @@ jobs:
             ldflags: -s -w
             cgo: "1"
             artifact: client-darwin-arm64
-          - os: macos-13
-            goos: darwin
-            goarch: amd64
-            ext: ""
-            ldflags: -s -w
-            cgo: "1"
-            artifact: client-darwin-amd64
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
