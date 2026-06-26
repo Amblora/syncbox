@@ -18,12 +18,11 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: stable
 
       - name: Build server
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/server/linux-amd64/syncbox-server ./cmd/server
-          cp -r web/index.html dist/server/linux-amd64/web/index.html
           mkdir -p dist/server/linux-amd64/web
           cp web/index.html dist/server/linux-amd64/web/index.html
 
@@ -37,34 +36,35 @@ jobs:
     name: Build Clients (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             goos: windows
             goarch: amd64
-            ext: .exe
-            ldflags: "-s -w -H windowsgui"
+            ext: ".exe"
+            ldflags: -s -w -H windowsgui
             cgo: "1"
             artifact: client-windows-amd64
           - os: macos-latest
             goos: darwin
             goarch: arm64
             ext: ""
-            ldflags: "-s -w"
+            ldflags: -s -w
             cgo: "1"
             artifact: client-darwin-arm64
           - os: macos-13
             goos: darwin
             goarch: amd64
             ext: ""
-            ldflags: "-s -w"
+            ldflags: -s -w
             cgo: "1"
             artifact: client-darwin-amd64
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
             ext: ""
-            ldflags: "-s -w"
+            ldflags: -s -w
             cgo: "1"
             artifact: client-linux-amd64
     steps:
@@ -72,7 +72,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: stable
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -85,7 +85,9 @@ jobs:
           CGO_ENABLED: "${{ matrix.cgo }}"
           GOOS: "${{ matrix.goos }}"
           GOARCH: "${{ matrix.goarch }}"
-        run: go build -ldflags=${{ matrix.ldflags }} -o dist/client/${{ matrix.artifact }}/syncbox-client${{ matrix.ext }} ./cmd/client
+        run: |
+          mkdir -p dist/client/${{ matrix.artifact }}
+          go build -ldflags "${{ matrix.ldflags }}" -o dist/client/${{ matrix.artifact }}/syncbox-client${{ matrix.ext }} ./cmd/client
 
       - name: Upload client artifact
         uses: actions/upload-artifact@v4
@@ -115,5 +117,5 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.zip
+          files: "*.zip"
           generate_release_notes: true
