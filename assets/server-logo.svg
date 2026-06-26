@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <!-- 圆角背景 -->
+  <rect width="256" height="256" rx="48" fill="url(#bg)"/>
+  <!-- 装饰网格线 -->
+  <g opacity="0.05" stroke="#fff" stroke-width="1">
+    <line x1="0" y1="64" x2="256" y2="64"/>
+    <line x1="0" y1="128" x2="256" y2="128"/>
+    <line x1="0" y1="192" x2="256" y2="192"/>
+    <line x1="64" y1="0" x2="64" y2="256"/>
+    <line x1="128" y1="0" x2="128" y2="256"/>
+    <line x1="192" y1="0" x2="192" y2="256"/>
+  </g>
+  <!-- 服务器机箱主体 -->
+  <rect x="60" y="70" width="136" height="120" rx="8" fill="url(#accent)" opacity="0.9"/>
+  <!-- 服务器面板分割线 -->
+  <line x1="60" y1="110" x2="196" y2="110" stroke="#fff" stroke-width="1" opacity="0.3"/>
+  <line x1="60" y1="150" x2="196" y2="150" stroke="#fff" stroke-width="1" opacity="0.3"/>
+  <!-- 服务器指示灯 -->
+  <circle cx="80" cy="88" r="5" fill="#22c55e"/>
+  <circle cx="96" cy="88" r="5" fill="#22c55e" opacity="0.7"/>
+  <circle cx="80" cy="128" r="5" fill="#22c55e"/>
+  <circle cx="96" cy="128" r="5" fill="#22c55e" opacity="0.7"/>
+  <circle cx="80" cy="168" r="5" fill="#22c55e"/>
+  <circle cx="96" cy="168" r="5" fill="#22c55e" opacity="0.7"/>
+  <!-- 服务器散热孔 -->
+  <g fill="#fff" opacity="0.15">
+    <rect x="120" y="82" width="60" height="3" rx="1"/>
+    <rect x="120" y="89" width="60" height="3" rx="1"/>
+    <rect x="120" y="122" width="60" height="3" rx="1"/>
+    <rect x="120" y="129" width="60" height="3" rx="1"/>
+    <rect x="120" y="162" width="60" height="3" rx="1"/>
+    <rect x="120" y="169" width="60" height="3" rx="1"/>
+  </g>
+  <!-- 同步箭头 (圆形双向) -->
+  <g transform="translate(128, 210)" opacity="0.9">
+    <path d="M-20,-8 A20,20 0 0,1 20,-8" fill="none" stroke="url(#glow)" stroke-width="3" stroke-linecap="round"/>
+    <polygon points="20,-8 14,-18 26,-18" fill="#38bdf8"/>
+    <path d="M20,8 A20,20 0 0,1 -20,8" fill="none" stroke="url(#glow)" stroke-width="3" stroke-linecap="round"/>
+    <polygon points="-20,8 -14,18 -26,18" fill="#38bdf8"/>
+  </g>
+  <!-- SyncBox 文字 -->
+  <text x="128" y="240" text-anchor="middle" fill="#94a3b8" font-family="Arial,sans-serif" font-size="16" font-weight="600">SyncBox Server</text>
+</svg>

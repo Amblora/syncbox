@@ -1,0 +1,24 @@
+﻿# 编译产物
+bin/
+dist/
+*.exe
+
+# 数据文件
+data/
+
+# 临时文件
+scripts/
+*.tmp
+*.log
+
+# Go
+vendor/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

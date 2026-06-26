@@ -1,0 +1,44 @@
+[Unit]
+Description=SyncBox Server - 文件同步服务器
+Documentation=https://github.com/aync/syncbox
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=syncbox
+Group=syncbox
+
+# 可执行文件路径（根据实际安装位置修改）
+ExecStart=/opt/syncbox/syncbox-server -addr :8080 -data /var/lib/syncbox/data
+
+# 工作目录
+WorkingDirectory=/opt/syncbox
+
+# 自动重启策略
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# 安全加固
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/syncbox/data
+PrivateTmp=true
+
+# 资源限制
+LimitNOFILE=65536
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=syncbox
+
+# 环境变量
+Environment=GODEBUG=netdns=go
+Environment=GOGC=100
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,3031 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SyncBox - 同步管理面板</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--yellow:#eab308;--red:#ef4444}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden}
+
+/* 登录页面样式 */
+#loginPage{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:48px;width:400px;max-width:90vw}
+.login-box h1{text-align:center;font-size:28px;margin-bottom:8px;color:var(--accent)}
+.login-box .subtitle{text-align:center;color:var(--text2);margin-bottom:32px;font-size:14px}
+.login-box .form-group{margin-bottom:20px}
+.login-box label{display:block;margin-bottom:8px;color:var(--text2);font-size:14px}
+.login-box input{width:100%;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;outline:none;transition:border-color .2s}
+.login-box input:focus{border-color:var(--accent)}
+.login-box button{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600;transition:opacity .2s}
+.login-box button:hover{opacity:.9}
+.login-error{color:var(--red);text-align:center;margin-top:12px;font-size:14px;min-height:20px}
+
+/* 主布局 */
+#mainApp{display:none;height:100vh;overflow:hidden}
+.app-layout{display:flex;height:100vh}
+
+/* 侧边栏 */
+.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border);text-align:center}
+.sidebar-header h2{font-size:20px;color:var(--accent);font-weight:700}
+.sidebar-header .version{font-size:11px;color:var(--text2);margin-top:4px}
+.sidebar-group{padding:12px 0}
+.sidebar-group-title{padding:4px 16px 8px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.sidebar-item{display:flex;align-items:center;padding:10px 16px;cursor:pointer;transition:background .15s;font-size:14px;color:var(--text);gap:10px;border-left:3px solid transparent}
+.sidebar-item:hover{background:rgba(59,130,246,.1)}
+.sidebar-item.active{background:rgba(59,130,246,.15);border-left-color:var(--accent);color:var(--accent)}
+.sidebar-item.sub-item{padding-left:36px;font-size:13px}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+.sidebar-footer button{width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:13px;transition:all .2s}
+.sidebar-footer button:hover{border-color:var(--red);color:var(--red)}
+
+/* 主内容区 */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.content-header{padding:16px 24px;border-bottom:1px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.content-header h1{font-size:18px;font-weight:600}
+.content-body{flex:1;overflow-y:auto;padding:24px}
+
+/* 统计卡片网格 */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:transform .2s,border-color .2s}
+.stat-card:hover{transform:translateY(-2px);border-color:var(--accent)}
+.stat-card .label{font-size:13px;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.stat-card .value{font-size:28px;font-weight:700}
+.stat-card .sub{font-size:12px;color:var(--text2);margin-top:4px}
+
+/* 按钮通用 */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font-size:13px;transition:all .2s;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.9;color:#fff}
+.btn-danger{background:var(--red);border-color:var(--red);color:#fff}
+.btn-danger:hover{opacity:.9;color:#fff}
+.btn-success{background:var(--green);border-color:var(--green);color:#fff}
+.btn-success:hover{opacity:.9;color:#fff}
+.btn-warning{background:var(--yellow);border-color:var(--yellow);color:#000}
+.btn-warning:hover{opacity:.9;color:#000}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* 表格 */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{text-align:left;padding:12px 16px;background:rgba(15,23,42,.5);color:var(--text2);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:10px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:hover{background:rgba(59,130,246,.05)}
+tbody tr.selected{background:rgba(59,130,246,.1)}
+input[type="checkbox"]{accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
+
+/* 状态标签 */
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-yellow{background:rgba(234,179,8,.15);color:var(--yellow)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--accent)}
+
+/* 模态框 */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:12px;min-width:360px;max-width:90vw;max-height:85vh;overflow:hidden;display:flex;flex-direction:column}
+.modal-box.wide{min-width:700px;max-width:95vw;width:900px}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px;line-height:1}
+.modal-close:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* 表单 */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--text2);font-weight:500}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:100px}
+.form-section{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.form-section-title{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+/* Toast通知 */
+.toast-container{position:fixed;top:16px;right:16px;z-index:10000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:12px 20px;border-radius:8px;font-size:14px;pointer-events:auto;animation:toastIn .3s ease;max-width:400px;box-shadow:0 4px 12px rgba(0,0,0,.3);word-wrap:break-word}
+.toast.info{background:var(--accent);color:#fff}
+.toast.success{background:var(--green);color:#fff}
+.toast.error{background:var(--red);color:#fff}
+.toast.warning{background:var(--yellow);color:#000}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+
+/* 加载遮罩 */
+.loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,.7);z-index:9500;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-overlay.show{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:var(--text2);font-size:14px}
+
+/* 文件管理器布局 */
+.file-manager{display:flex;gap:0;height:calc(100vh - 130px);overflow:hidden}
+.file-tree-panel{width:240px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;background:rgba(15,23,42,.3);padding:8px}
+.file-tree-panel .tree-item{padding:6px 10px;cursor:pointer;border-radius:6px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-tree-panel .tree-item:hover{background:rgba(59,130,246,.1)}
+.file-tree-panel .tree-item.active{background:rgba(59,130,246,.15);color:var(--accent)}
+.file-tree-panel .tree-children{margin-left:16px}
+.file-list-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.file-toolbar{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);flex-shrink:0}
+.breadcrumb{display:flex;align-items:center;gap:4px;font-size:13px;flex:1;min-width:0;overflow-x:auto}
+.breadcrumb span{cursor:pointer;color:var(--accent);white-space:nowrap;padding:2px 6px;border-radius:4px}
+.breadcrumb span:hover{background:rgba(59,130,246,.1)}
+.breadcrumb span.current{color:var(--text);cursor:default}
+.breadcrumb span.current:hover{background:transparent}
+.breadcrumb .sep{color:var(--text2);cursor:default;padding:0}
+.file-list-body{flex:1;overflow-y:auto;padding:0}
+.file-row{display:flex;align-items:center;padding:8px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;gap:12px}
+.file-row:hover,.move-dir-item:hover{background:rgba(59,130,246,.1)}
+.file-row.selected{background:rgba(59,130,246,.1)}
+.file-row .file-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.file-row .file-name{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-row .file-size{width:80px;text-align:right;font-size:12px;color:var(--text2);flex-shrink:0}
+.file-row .file-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.file-row:hover .file-actions{opacity:1}
+.file-row .file-check{width:20px;flex-shrink:0}
+
+/* 上传进度 */
+.upload-progress-bar{width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px}
+.upload-progress-bar .fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+
+/* 图表容器 */
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:20px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.chart-card h3{font-size:14px;margin-bottom:12px;color:var(--text2)}
+.chart-card canvas{width:100%;height:200px;display:block}
+
+/* 回收站 */
+.trash-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state .text{font-size:16px}
+
+/* 设置表单 */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(450px,1fr));gap:20px}
+
+/* 代码/Token显示 */
+.token-display{font-family:"Cascadia Code","Fira Code","Consolas",monospace;background:var(--bg);padding:4px 8px;border-radius:4px;font-size:13px;border:1px solid var(--border);cursor:pointer;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+.token-display:hover{border-color:var(--accent)}
+
+/* 文件查看器 */
+.file-viewer{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;max-height:500px;overflow-y:auto;line-height:1.6}
+.file-viewer img{max-width:100%;border-radius:8px}
+
+/* 日志行数 */
+.log-row-num{color:var(--text2);font-size:11px;width:30px;text-align:right;padding-right:8px}
+
+/* 滚动条美化 */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text2)}
+
+/* 清理页面 */
+.cleanup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:20px}
+.cleanup-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.cleanup-card h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.cleanup-card .item-list{margin:12px 0}
+.cleanup-card .item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(51,65,85,.5);font-size:13px}
+.cleanup-card .item:last-child{border-bottom:none}
+
+/* 响应式 */
+@media(max-width:768px){
+.sidebar{width:60px}
+.sidebar-group-title,.sidebar-footer button span,.sidebar-header .version{display:none}
+.sidebar-item{padding:12px;justify-content:center}
+.sidebar-item span{display:none}
+.content-body{padding:16px}
+.stats-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.file-tree-panel{display:none}
+.chart-grid{grid-template-columns:1fr}
+.settings-grid{grid-template-columns:1fr}
+}
+
+/* 空状态提示 */
+.no-data{color:var(--text2);text-align:center;padding:40px;font-size:14px}
+
+/* 资源监控 - 公有云控制台风格 */
+.monitor-top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.monitor-time-range{display:flex;gap:6px}
+.monitor-time-range .btn{padding:6px 14px;font-size:12px}
+.monitor-time-range .btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* 指标概览卡片 */
+.monitor-metrics-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden}
+.metric-card .mc-icon{position:absolute;top:12px;right:14px;font-size:22px;opacity:.5}
+.metric-card .mc-label{font-size:12px;color:var(--text2);margin-bottom:6px}
+.metric-card .mc-value{font-size:24px;font-weight:700;line-height:1.2}
+.metric-card .mc-unit{font-size:13px;font-weight:400;color:var(--text2);margin-left:2px}
+.metric-card .mc-bar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:10px;overflow:hidden}
+.metric-card .mc-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.metric-card .mc-sub{font-size:11px;color:var(--text2);margin-top:6px}
+
+/* 状态色 */
+.mc-green .mc-value{color:var(--green)}
+.mc-green .mc-bar-fill{background:var(--green)}
+.mc-yellow .mc-value{color:var(--yellow)}
+.mc-yellow .mc-bar-fill{background:var(--yellow)}
+.mc-red .mc-value{color:var(--red)}
+.mc-red .mc-bar-fill{background:var(--red)}
+.mc-blue .mc-value{color:var(--accent)}
+.mc-blue .mc-bar-fill{background:var(--accent)}
+.mc-purple .mc-value{color:var(--accent2)}
+.mc-purple .mc-bar-fill{background:var(--accent2)}
+
+/* 图表区域 */
+.monitor-charts{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px;margin-bottom:24px}
+.monitor-chart-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.monitor-chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.monitor-chart-header h4{font-size:13px;font-weight:600;color:var(--text2)}
+.monitor-chart-header .mch-current{font-size:18px;font-weight:700}
+.monitor-chart-card canvas{width:100%;height:180px;display:block}
+
+/* 详细信息面板 */
+.monitor-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.monitor-detail-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px}
+.monitor-detail-card h4{font-size:14px;font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.monitor-detail-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}
+.monitor-detail-row .mdr-label{color:var(--text2)}
+.monitor-detail-row .mdr-value{font-weight:500}
+
+/* 操作按钮组 */
+.monitor-actions{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+
+/* 冲突列表 */
+.conflict-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:16px}
+.conflict-item .conflict-path{flex:1;font-size:14px}
+.conflict-item .conflict-actions{display:flex;gap:8px}
+</style>
+</head>
+<body>
+
+<!-- Toast容器 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- 加载遮罩 -->
+<div class="loading-overlay" id="loadingOverlay">
+<div class="spinner"></div>
+<div class="loading-text">处理中...</div>
+</div>
+
+<!-- 模态框容器 -->
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal-box" id="modalBox">
+<div class="modal-header">
+<h3 id="modalTitle">提示</h3>
+<button class="modal-close" onclick="closeModal()">&times;</button>
+</div>
+<div class="modal-body" id="modalBody"></div>
+<div class="modal-footer" id="modalFooter"></div>
+</div>
+</div>
+
+<!-- 登录页面 -->
+<div id="loginPage">
+<div class="login-box">
+<h1>SyncBox</h1>
+<div class="subtitle">同步管理系统</div>
+<div class="form-group">
+<label for="loginUser">用户名</label>
+<input type="text" id="loginUser" placeholder="请输入用户名" value="admin">
+</div>
+<div class="form-group">
+<label for="loginPass">密码</label>
+<input type="password" id="loginPass" placeholder="请输入密码" value="admin123">
+</div>
+<button onclick="doLogin()">登 录</button>
+<div class="login-error" id="loginError"></div>
+</div>
+</div>
+
+<!-- 主应用 -->
+<div id="mainApp">
+<div class="app-layout">
+
+<!-- 侧边栏 -->
+<div class="sidebar">
+<div class="sidebar-header">
+<h2>SyncBox</h2>
+<div class="version">管理面板 v1.0</div>
+</div>
+
+<div class="sidebar-group">
+<div class="sidebar-group-title">主要功能</div>
+<div class="sidebar-item active" data-page="overview" onclick="switchPage('overview',this)">
+<span>📊</span><span>总览</span>
+</div>
+<div class="sidebar-item" data-page="files" onclick="switchPage('files',this)">
+<span>📁</span><span>文件管理</span>
+</div>
+</div>
+
+<div class="sidebar-group">
+<div class="sidebar-group-title">设备与接入</div>
+<div class="sidebar-item" data-page="devices" onclick="switchPage('devices',this)">
+<span>🖥️</span><span>设备管理</span>
+</div>
+<div class="sidebar-item" data-page="tokens" onclick="switchPage('tokens',this)">
+<span>🔑</span><span>Token管理</span>
+</div>
+</div>
+
+<div class="sidebar-group">
+<div class="sidebar-group-title">冲突与监控</div>
+<div class="sidebar-item" data-page="conflicts" onclick="switchPage('conflicts',this)">
+<span>⚠️</span><span>冲突中心</span>
+</div>
+<div class="sidebar-item" data-page="monitor" onclick="switchPage('monitor',this)">
+<span>📈</span><span>资源监控</span>
+</div>
+<div class="sidebar-item" data-page="cleanup" onclick="switchPage('cleanup',this)">
+<span>🧹</span><span>磁盘清理</span>
+</div>
+<div class="sidebar-item" data-page="trash" onclick="switchPage('trash',this)">
+<span>🗑️</span><span>回收站</span>
+</div>
+<div class="sidebar-item" data-page="settings" onclick="switchPage('settings',this)">
+<span>⚙️</span><span>设置</span>
+</div>
+</div>
+
+<div class="sidebar-footer">
+<button onclick="doLogout()"><span>退出登录</span></button>
+</div>
+</div>
+
+<!-- 主内容区 -->
+<div class="main-content">
+<div class="content-header">
+<h1 id="pageTitle">总览</h1>
+<div id="headerActions"></div>
+</div>
+<div class="content-body" id="contentBody">
+<!-- 动态内容 -->
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+/* ========================================================
+   全局变量和配置
+   ======================================================== */
+var API_BASE = "/api/admin";
+var token = "";
+var currentPage = "overview";
+var overviewTimer = null;
+var monitorSSE = null;
+var monitorPollTimer = null;
+
+/* 图表数据存储 - 最多60个点的滑动窗口 */
+var chartData = {
+    cpu: [],
+    memory: [],
+    swap: [],
+    disk: []
+};
+var MAX_CHART_POINTS = 60;
+
+/* 文件管理器状态 */
+var fileCurrentPath = "";
+var fileSelected = new Set();
+var fileTreeData = {};
+
+/* ========================================================
+   工具函数
+   ======================================================== */
+
+/* 获取存储的Token */
+function getToken() {
+    return localStorage.getItem("sb_token") || "";
+}
+
+/* HTML转义防止XSS */
+function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/[""]/g, '&quot;');
+}
+
+/* 格式化文件大小 */
+function formatSize(bytes) {
+    if (!bytes || bytes === 0) return "0 B";
+    var units = ["B", "KB", "MB", "GB", "TB"];
+    var i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024;
+        i++;
+    }
+    return bytes.toFixed(i > 0 ? 1 : 0) + " " + units[i];
+}
+
+/* 格式化时间戳为中文本地时间 */
+/* 格式化时间戳为中文长日期格式，如: 2026年6月21日 20:16:01 */
+/* 自动检测时间戳是秒级(10位)还是毫秒级(13位) */
+function formatTime(ts) {
+    if (!ts) return "-";
+    try {
+        var numTs = Number(ts);
+        /* 判断：如果数值小于 1e12 则是秒级，否则是毫秒级 */
+        var d;
+        if (numTs < 1e12) {
+            d = new Date(numTs * 1000);
+        } else {
+            d = new Date(numTs);
+        }
+        /* 验证日期是否合理 */
+        if (isNaN(d.getTime()) || d.getFullYear() < 2000 || d.getFullYear() > 2100) return "-";
+        var y = d.getFullYear();
+        var M = d.getMonth() + 1;
+        var day = d.getDate();
+        var h = d.getHours();
+        var m = d.getMinutes();
+        var s = d.getSeconds();
+        return y + "年" + M + "月" + day + "日 " +
+            String(h).padStart(2, '0') + ":" +
+            String(m).padStart(2, '0') + ":" +
+            String(s).padStart(2, '0');
+    } catch (e) {
+        return String(ts);
+    }
+}
+
+/* API请求封装 */
+async function api(path, opts) {
+    opts = opts || {};
+    var url = API_BASE + path;
+    var headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = "Bearer " + token;
+
+    var fetchOpts = {
+        method: opts.method || "GET",
+        headers: headers
+    };
+
+    if (opts.body) {
+        fetchOpts.body = typeof opts.body === "string" ? opts.body : JSON.stringify(opts.body);
+    }
+
+    if (opts.raw) {
+        fetchOpts.body = opts.raw;
+        delete headers["Content-Type"];
+    }
+
+    try {
+        var resp = await fetch(url, fetchOpts);
+        var text = await resp.text();
+        var data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            data = text;
+        }
+
+        if (!resp.ok) {
+            var errMsg = (data && data.error) ? data.error : (typeof data === 'string' ? data : "请求失败 (" + resp.status + ")");
+            throw new Error(errMsg);
+        }
+        return data;
+    } catch (e) {
+        if (e.message === "Failed to fetch") {
+            throw new Error("网络连接失败，请检查服务器");
+        }
+        throw e;
+    }
+}
+
+/* 文件上传专用API（带进度回调） */
+function uploadFile(path, file, onProgress) {
+    return new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        var url = API_BASE + "/files/upload";
+        xhr.open("POST", url);
+        if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable && onProgress) {
+                onProgress(Math.round(e.loaded / e.total * 100));
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try { resolve(JSON.parse(xhr.responseText)); }
+                catch (e) { resolve(xhr.responseText); }
+            } else {
+                var errMsg = "上传失败";
+                try {
+                    var errData = JSON.parse(xhr.responseText);
+                    errMsg = errData.error || errMsg;
+                } catch (e) {}
+                reject(new Error(errMsg));
+            }
+        };
+
+        xhr.onerror = function() { reject(new Error("网络错误")); };
+
+        var formData = new FormData();
+        formData.append("path", path);
+        formData.append("file", file);
+        xhr.send(formData);
+    });
+}
+
+/* Toast通知 */
+function toast(msg, type) {
+    type = type || "info";
+    var container = document.getElementById("toastContainer");
+    var el = document.createElement("div");
+    el.className = "toast " + type;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(function() {
+        el.style.opacity = "0";
+        el.style.transform = "translateX(40px)";
+        el.style.transition = "all .3s";
+        setTimeout(function() { el.remove(); }, 300);
+    }, 3000);
+}
+
+/* 加载遮罩 */
+function showLoading() {
+    document.getElementById("loadingOverlay").classList.add("show");
+}
+function hideLoading() {
+    document.getElementById("loadingOverlay").classList.remove("show");
+}
+
+/* ========================================================
+   自定义模态框系统
+   ======================================================== */
+
+function openModal(title, bodyHtml, footerHtml, wide) {
+    var overlay = document.getElementById("modalOverlay");
+    var box = document.getElementById("modalBox");
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalBody").innerHTML = bodyHtml;
+    document.getElementById("modalFooter").innerHTML = footerHtml || "";
+    if (wide) box.classList.add("wide");
+    else box.classList.remove("wide");
+    overlay.classList.add("show");
+}
+
+function closeModal() {
+    document.getElementById("modalOverlay").classList.remove("show");
+}
+
+/* 确认对话框 */
+function showConfirm(msg, onYes) {
+    var body = '<p style="font-size:15px;line-height:1.6;color:var(--text)">' + escHtml(msg) + '</p>';
+    var footer = '<button class="btn" onclick="closeModal()">取消</button>' +
+        '<button class="btn btn-primary" id="confirmYesBtn">确定</button>';
+    openModal("确认", body, footer);
+    document.getElementById("confirmYesBtn").onclick = function() {
+        closeModal();
+        if (onYes) onYes();
+    };
+}
+
+/* 提示对话框 */
+function showAlert(msg) {
+    var body = '<p style="font-size:15px;line-height:1.6;color:var(--text)">' + escHtml(msg) + '</p>';
+    var footer = '<button class="btn btn-primary" onclick="closeModal()">确定</button>';
+    openModal("提示", body, footer);
+}
+
+/* 输入对话框 */
+function showPrompt(msg, defaultVal, onOk) {
+    var body = '<p style="font-size:14px;color:var(--text2);margin-bottom:12px">' + escHtml(msg) + '</p>' +
+        '<input type="text" id="promptInput" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none" value="' + escHtml(defaultVal || '') + '">';
+    var footer = '<button class="btn" onclick="closeModal()">取消</button>' +
+        '<button class="btn btn-primary" id="promptOkBtn">确定</button>';
+    openModal("输入", body, footer);
+    var input = document.getElementById("promptInput");
+    input.focus();
+    input.select();
+    document.getElementById("promptOkBtn").onclick = function() {
+        var val = input.value;
+        closeModal();
+        if (onOk) onOk(val);
+    };
+    input.onkeydown = function(e) {
+        if (e.key === "Enter") {
+            var val = input.value;
+            closeModal();
+            if (onOk) onOk(val);
+        }
+    };
+}
+
+/* ========================================================
+   登录/登出
+   ======================================================== */
+
+async function doLogin() {
+    var user = document.getElementById("loginUser").value.trim();
+    var pass = document.getElementById("loginPass").value;
+    var errEl = document.getElementById("loginError");
+    errEl.textContent = "";
+
+    if (!user || !pass) {
+        errEl.textContent = "请输入用户名和密码";
+        return;
+    }
+
+    try {
+        showLoading();
+        var data = await api("/login", {
+            method: "POST",
+            body: { username: user, password: pass }
+        });
+        token = data.token || data.Token || "";
+        localStorage.setItem("sb_token", token);
+        hideLoading();
+        showMainApp();
+    } catch (e) {
+        hideLoading();
+        errEl.textContent = e.message || "登录失败";
+    }
+}
+
+function doLogout() {
+    showConfirm("确定要退出登录吗？", function() {
+        token = "";
+        localStorage.removeItem("sb_token");
+        stopOverviewRefresh();
+        stopMonitorSSE();
+        document.getElementById("mainApp").style.display = "none";
+        document.getElementById("loginPage").style.display = "flex";
+    });
+}
+
+function showMainApp() {
+    document.getElementById("loginPage").style.display = "none";
+    document.getElementById("mainApp").style.display = "block";
+    switchPage("overview", document.querySelector('.sidebar-item[data-page="overview"]'));
+}
+
+/* ========================================================
+   页面切换
+   ======================================================== */
+
+function switchPage(page, el) {
+    currentPage = page;
+    stopOverviewRefresh();
+    stopMonitorSSE();
+
+    /* 更新侧边栏高亮 */
+    document.querySelectorAll('.sidebar-item').forEach(function(item) {
+        item.classList.remove('active');
+    });
+    if (el) el.classList.add('active');
+
+    /* 更新标题 */
+    var titles = {
+        overview: "总览",
+        files: "文件管理",
+        devices: "设备管理",
+        tokens: "Token管理",
+        conflicts: "冲突中心",
+        monitor: "资源监控",
+        cleanup: "磁盘清理",
+        trash: "回收站",
+        settings: "设置"
+    };
+    document.getElementById("pageTitle").textContent = titles[page] || page;
+    document.getElementById("headerActions").innerHTML = "";
+
+    /* 渲染页面 */
+    var body = document.getElementById("contentBody");
+    body.innerHTML = "";
+
+    switch (page) {
+        case "overview": renderOverview(body); break;
+        case "files": renderFiles(body); break;
+        case "devices": renderDevices(body); break;
+        case "tokens": renderTokens(body); break;
+        case "conflicts": renderConflicts(body); break;
+        case "monitor": renderMonitor(body); break;
+        case "cleanup": renderCleanup(body); break;
+        case "trash": renderTrash(body); break;
+        case "settings": renderSettings(body); break;
+    }
+}
+
+/* ========================================================
+   页面1：总览
+   ======================================================== */
+
+function renderOverview(container) {
+    container.innerHTML = '<div class="stats-grid" id="overviewGrid">' +
+        '<div class="stat-card"><div class="label">📊 加载中...</div><div class="value">--</div></div>'.repeat(10) +
+        '</div>';
+    fetchOverviewData();
+    startOverviewRefresh();
+}
+
+async function fetchOverviewData() {
+    try {
+        /* 同时获取两个接口的数据 */
+        var overviewData = {};
+        var metricsData = {};
+
+        var results = await Promise.allSettled([
+            api("/overview"),
+            api("/metrics"),
+            api("/cleanup/scan")
+        ]);
+
+        if (results[0].status === "fulfilled") overviewData = results[0].value || {};
+        if (results[1].status === "fulfilled") metricsData = results[1].value || {};
+        var cleanupData = {};
+        if (results[2].status === "fulfilled") cleanupData = results[2].value || {};
+
+        /* 从metrics获取嵌套数据 */
+        var cpuUsage = 0, memUsage = 0, swapUsage = 0, diskUsage = 0;
+        if (metricsData.cpu) cpuUsage = metricsData.cpu.usage_percent || 0;
+        if (metricsData.memory) memUsage = metricsData.memory.used_percent || 0;
+        if (metricsData.swap) swapUsage = metricsData.swap.used_percent || 0;
+        if (metricsData.disk) diskUsage = metricsData.disk.used_percent || 0;
+
+        /* 字节转换 */
+        var diskFreeGB = (overviewData.disk_free || 0) / 1073741824;
+        var syncDirMB = (overviewData.sync_dir_size || 0) / 1048576;
+
+        /* 构建10张卡片数据 */
+        var cards = [
+            { label: "🖥️ 在线设备", value: overviewData.active_devices || overviewData.online_devices || 0, sub: "总设备: " + (overviewData.total_devices || 0), color: "var(--green)" },
+            { label: "📄 总文件数", value: overviewData.total_files || 0, sub: "已同步文件", color: "var(--accent)" },
+            { label: "💾 剩余磁盘(GB)", value: diskFreeGB.toFixed(2), sub: "磁盘使用: " + (overviewData.disk_percent || 0).toFixed(1) + "%", color: diskFreeGB < 10 ? "var(--red)" : "var(--green)" },
+            { label: "🔄 今日同步", value: overviewData.today_events || 0, sub: "今日同步事件数", color: "var(--accent2)" },
+            { label: "📦 使用空间(MB)", value: syncDirMB.toFixed(2), sub: "同步目录总大小", color: "var(--yellow)" },
+            { label: "⚠️ 未处理冲突", value: overviewData.pending_conflicts || 0, sub: overviewData.pending_conflicts > 0 ? "需要处理" : "无冲突", color: (overviewData.pending_conflicts || 0) > 0 ? "var(--red)" : "var(--green)" },
+            { label: "⚡ CPU使用率(%)", value: cpuUsage.toFixed(1), sub: "处理器负载", color: cpuUsage > 80 ? "var(--red)" : cpuUsage > 50 ? "var(--yellow)" : "var(--green)" },
+            { label: "🧠 内存使用率(%)", value: memUsage.toFixed(1), sub: "系统内存", color: memUsage > 80 ? "var(--red)" : memUsage > 50 ? "var(--yellow)" : "var(--green)" },
+            { label: "💾 Swap使用率(%)", value: swapUsage.toFixed(1), sub: "交换分区", color: swapUsage > 80 ? "var(--red)" : swapUsage > 50 ? "var(--yellow)" : "var(--green)" },
+            { label: "🧹 可回收空间", value: formatSize(cleanupData.total_recoverable || 0), sub: "低风险清理项", color: "var(--green)" },
+            { label: "📁 临时文件", value: (cleanupData.temp_files && cleanupData.temp_files.count || 0), sub: formatSize(cleanupData.temp_files && cleanupData.temp_files.size || 0), color: "var(--accent)" },
+            { label: "🗑️ 回收站", value: (cleanupData.trash_files && cleanupData.trash_files.count || 0), sub: formatSize(cleanupData.trash_files && cleanupData.trash_files.size || 0), color: "var(--yellow)" },
+            { label: "📋 旧日志", value: (cleanupData.old_logs && cleanupData.old_logs.count || 0), sub: formatSize(cleanupData.old_logs && cleanupData.old_logs.size || 0), color: "var(--accent2)" },
+            { label: "💿 磁盘使用率(%)", value: diskUsage.toFixed(1), sub: "磁盘空间", color: diskUsage > 90 ? "var(--red)" : diskUsage > 70 ? "var(--yellow)" : "var(--green)" }
+        ];
+
+        var html = "";
+        for (var i = 0; i < cards.length; i++) {
+            var c = cards[i];
+            html += '<div class="stat-card">' +
+                '<div class="label">' + c.label + '</div>' +
+                '<div class="value" style="color:' + c.color + '">' + escHtml(String(c.value)) + '</div>' +
+                '<div class="sub">' + escHtml(c.sub) + '</div>' +
+                '</div>';
+        }
+
+        var grid = document.getElementById("overviewGrid");
+        if (grid) grid.innerHTML = html;
+
+        /* 显示警告信息 */
+        if (overviewData.warnings && overviewData.warnings.length > 0) {
+            var warnHtml = '<div style="margin-top:20px">';
+            for (var w = 0; w < overviewData.warnings.length; w++) {
+                warnHtml += '<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:12px 16px;margin-bottom:8px;font-size:13px;color:var(--yellow)">⚠️ ' + escHtml(overviewData.warnings[w]) + '</div>';
+            }
+            warnHtml += '</div>';
+            if (grid) grid.innerHTML += warnHtml;
+        }
+    } catch (e) {
+        console.error("获取总览数据失败:", e);
+    }
+}
+
+function startOverviewRefresh() {
+    stopOverviewRefresh();
+    overviewTimer = setInterval(function() {
+        if (currentPage === "overview") fetchOverviewData();
+    }, 5000);
+}
+
+function stopOverviewRefresh() {
+    if (overviewTimer) {
+        clearInterval(overviewTimer);
+        overviewTimer = null;
+    }
+}
+
+/* ========================================================
+   页面2：文件管理
+   ======================================================== */
+
+function renderFiles(container) {
+    container.innerHTML =
+        '<div class="file-manager">' +
+            '<div class="file-tree-panel" id="fileTree"></div>' +
+            '<div class="file-list-panel">' +
+                '<div class="file-toolbar" id="fileToolbar">' +
+                    '<div class="breadcrumb" id="fileBreadcrumb"></div>' +
+                    '<div class="btn-group">' +
+                        '<label class="btn btn-sm btn-primary" style="cursor:pointer">📤 上传文件<input type="file" multiple style="display:none" onchange="handleFileUpload(event)"></label>' +
+                        '<label class="btn btn-sm btn-primary" style="cursor:pointer">📁 上传文件夹<input type="file" webkitdirectory style="display:none" onchange="handleFolderUpload(event)"></label>' +
+                        '<button class="btn btn-sm" onclick="createNewFolder()">📂 新建文件夹</button>' +
+                        '<button class="btn btn-sm" onclick="refreshFileManager()">🔄 刷新</button>' +
+                        '<button class="btn btn-sm btn-danger" id="batchDeleteBtn" style="display:none" onclick="batchDeleteFiles()">🗑️ 批量删除</button>' +
+                        '<button class="btn btn-sm btn-warning" id="batchMoveBtn" style="display:none" onclick="batchMoveFiles()">📦 批量移动</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="file-list-body" id="fileListBody">' +
+                    '<div class="no-data">加载中...</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+
+    fileCurrentPath = "";
+    fileSelected.clear();
+    loadFileTree();
+    loadFileList("");
+}
+
+/* 加载目录树 - 支持层级展开 */
+async function loadFileTree() {
+    try {
+        var data = await api("/files/list?path=");
+        var tree = document.getElementById("fileTree");
+        if (!tree) return;
+
+        var items = data.items || data.files || data || [];
+        if (typeof window.treeExpanded === 'undefined') window.treeExpanded = {};
+
+        var html = '<div class="tree-node ' + (fileCurrentPath === "" ? "active" : "") + '" onclick="window.treeExpanded={};loadFileList(\'\');loadFileTree();" style="padding:6px 10px;cursor:pointer;font-size:13px;border-radius:4px;' + (fileCurrentPath === "" ? "background:rgba(59,130,246,.15);color:var(--accent)" : "") + '">📂 根目录</div>';
+
+        html += await renderTreeLevel(items, "", 0);
+        tree.innerHTML = html;
+    } catch (e) {
+        var tree = document.getElementById("fileTree");
+        if (tree) tree.innerHTML = '<div style="color:var(--text2);padding:10px;font-size:12px">加载失败</div>';
+    }
+}
+
+/* 递归渲染目录树的每一层 */
+async function renderTreeLevel(items, parentPath, depth) {
+    var html = "";
+    var sorted = items.slice().sort(function(a, b) {
+        var aD = (a.is_dir || a.IsDir) ? 0 : 1;
+        var bD = (b.is_dir || b.IsDir) ? 0 : 1;
+        return aD - bD || (a.name || "").localeCompare(b.name || "");
+    });
+
+    for (var i = 0; i < sorted.length; i++) {
+        var item = sorted[i];
+        var name = item.name || item.Name || "";
+        var isDir = item.is_dir || item.IsDir;
+        var fullPath = parentPath ? parentPath + "/" + name : name;
+        var isActive = fileCurrentPath === fullPath;
+        var isExpanded = !!window.treeExpanded[fullPath];
+        var indent = 6 + depth * 16;
+
+        if (isDir) {
+            var arrow = isExpanded ? "▼" : "▶";
+            html += '<div class="tree-node" style="padding:3px 10px 3px ' + indent + 'px;cursor:pointer;font-size:' + Math.max(11, 13 - depth) + 'px;border-radius:4px;' + (isActive ? "background:rgba(59,130,246,.15);color:var(--accent)" : "") + '" onclick="window.treeExpanded[\'' + escHtml(fullPath) + '\']=!window.treeExpanded[\'' + escHtml(fullPath) + '\'];loadFileList(\'' + escHtml(fullPath) + '\');loadFileTree();">';
+            html += '<span style="display:inline-block;width:14px;font-size:10px">' + arrow + '</span> 📁 ' + escHtml(name);
+            html += '</div>';
+
+            if (isExpanded) {
+                try {
+                    var subData = await api("/files/list?path=" + encodeURIComponent(fullPath));
+                    var subItems = subData.items || subData.files || subData || [];
+                    html += await renderTreeLevel(subItems, fullPath, depth + 1);
+                } catch(e) { /* 静默处理 */ }
+            }
+        } else {
+            var icon = getFileIcon(name);
+            html += '<div class="tree-node" style="padding:2px 10px 2px ' + (indent + 14) + 'px;font-size:' + Math.max(10, 12 - depth) + 'px;color:var(--text2)" onclick="viewFile(\'' + escHtml(fullPath) + '\')">';
+            html += icon + " " + escHtml(name);
+            html += "</div>";
+        }
+    }
+    return html;
+}
+
+/* 刷新文件管理器 */
+function refreshFileManager() {
+    loadFileTree();
+    loadFileList(fileCurrentPath);
+    toast("已刷新", "info");
+}
+
+/* 加载文件列表 */
+async function loadFileList(path) {
+    fileCurrentPath = path || "";
+    fileSelected.clear();
+    updateBatchButtons();
+
+    var body = document.getElementById("fileListBody");
+    if (!body) return;
+
+    try {
+        var data = await api("/files/list?path=" + encodeURIComponent(fileCurrentPath));
+        var items = data.items || data.files || data || [];
+
+        /* 更新面包屑 */
+        updateBreadcrumb();
+
+        if (!Array.isArray(items)) items = [];
+        if (items.length === 0) {
+            body.innerHTML = '<div class="empty-state"><div class="icon">📂</div><div class="text">此目录为空</div></div>';
+            return;
+        }
+
+        /* 排序：目录在前，然后按名称 */
+        items.sort(function(a, b) {
+            var aDir = a.is_dir || a.IsDir ? 0 : 1;
+            var bDir = b.is_dir || b.IsDir ? 0 : 1;
+            if (aDir !== bDir) return aDir - bDir;
+            var aName = a.name || a.Name || "";
+            var bName = b.name || b.Name || "";
+            return aName.localeCompare(bName);
+        });
+
+        var html = "";
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var name = item.name || item.Name || "";
+            var isDir = item.is_dir || item.IsDir;
+            var size = item.size || item.Size || 0;
+            var icon = isDir ? "📁" : getFileIcon(name);
+
+            var fullPath = fileCurrentPath ? fileCurrentPath + '/' + name : name;
+                html += '<div class="file-row" id="frow-' + i + '">' +
+                '<div class="file-check"><input type="checkbox" onchange="toggleFileSelect(\'' + escHtml(name) + '\', this.checked)"></div>' +
+                '<div class="file-icon">' + icon + '</div>' +
+                '<div class="file-name" onclick="' + (isDir ? "loadFileList('" + escHtml(fullPath) + "')" : "viewFile('" + escHtml(fullPath) + "')") + '" style="cursor:pointer;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(name) + '</div>' +
+                '<div class="file-size" style="min-width:70px">' + (isDir ? '-' : formatSize(size)) + '</div>' +
+                '<div class="file-actions" style="display:flex;gap:4px;align-items:center">' +
+                    (isDir ? '' : '<button class="btn btn-sm" title="查看" onclick="viewFile(\'' + escHtml(fullPath) + '\')">👁️</button>') +
+                    (isDir ? '' : '<button class="btn btn-sm" title="编辑" onclick="editFileDirect(\'' + escHtml(fullPath) + '\')">✏️</button>') +
+                    (isDir ? '' : '<button class="btn btn-sm" title="下载" onclick="downloadFile(\'' + escHtml(fullPath) + '\')">⬇️</button>') +
+                    '<button class="btn btn-sm btn-danger" title="删除" onclick="deleteSingleFile(\'' + escHtml(fullPath) + '\')">🗑️</button>' +
+                '</div>' +
+                '</div>';
+        }
+
+        body.innerHTML = html;
+    } catch (e) {
+        body.innerHTML = '<div class="no-data">加载失败: ' + escHtml(e.message) + '</div>';
+    }
+}
+
+/* 更新面包屑导航 */
+function updateBreadcrumb() {
+    var bc = document.getElementById("fileBreadcrumb");
+    if (!bc) return;
+
+    var parts = fileCurrentPath ? fileCurrentPath.split("/").filter(Boolean) : [];
+    var html = '<span onclick="loadFileList(\'\')" ' + (parts.length === 0 ? 'class="current"' : '') + '>根目录</span>';
+
+    var buildPath = "";
+    for (var i = 0; i < parts.length; i++) {
+        buildPath += (buildPath ? "/" : "") + parts[i];
+        var isLast = i === parts.length - 1;
+        html += '<span class="sep">/</span>';
+        if (isLast) {
+            html += '<span class="current">' + escHtml(parts[i]) + '</span>';
+        } else {
+            var p = buildPath;
+            html += '<span onclick="loadFileList(\'' + escHtml(p) + '\')">' + escHtml(parts[i]) + '</span>';
+        }
+    }
+
+    bc.innerHTML = html;
+}
+
+/* 获取文件图标 */
+function getFileIcon(name) {
+    var ext = name.split('.').pop().toLowerCase();
+    var icons = {
+        'txt': '📄', 'md': '📝', 'json': '📋', 'xml': '📋', 'yaml': '📋', 'yml': '📋',
+        'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'bmp': '🖼️', 'svg': '🖼️', 'webp': '🖼️',
+        'mp3': '🎵', 'wav': '🎵', 'flac': '🎵', 'aac': '🎵',
+        'mp4': '🎬', 'avi': '🎬', 'mkv': '🎬', 'mov': '🎬',
+        'zip': '📦', 'tar': '📦', 'gz': '📦', 'rar': '📦', '7z': '📦',
+        'pdf': '📕', 'doc': '📘', 'docx': '📘', 'xls': '📗', 'xlsx': '📗',
+        'js': '⚡', 'ts': '⚡', 'py': '🐍', 'go': '🔷', 'java': '☕', 'c': '🔧', 'cpp': '🔧', 'h': '🔧',
+        'html': '🌐', 'css': '🎨', 'sh': '💻', 'bat': '💻', 'exe': '⚙️'
+    };
+    return icons[ext] || '📄';
+}
+
+/* 文件选择切换 */
+function toggleFileSelect(name, checked) {
+    if (checked) fileSelected.add(name);
+    else fileSelected.delete(name);
+    updateBatchButtons();
+
+    /* 更新行高亮 */
+    var rows = document.querySelectorAll('.file-row');
+    rows.forEach(function(row) {
+        var cb = row.querySelector('input[type="checkbox"]');
+        if (cb && cb.checked) row.classList.add('selected');
+        else row.classList.remove('selected');
+    });
+}
+
+/* 更新批量操作按钮显示 */
+function updateBatchButtons() {
+    var delBtn = document.getElementById("batchDeleteBtn");
+    var movBtn = document.getElementById("batchMoveBtn");
+    if (delBtn) delBtn.style.display = fileSelected.size > 0 ? "inline-flex" : "none";
+    if (movBtn) movBtn.style.display = fileSelected.size > 0 ? "inline-flex" : "none";
+}
+
+/* 文件上传处理 */
+async function handleFileUpload(event) {
+    var files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    /* 去重：同一个文件可能出现在多个路径中，用 webkitRelativePath 去重 */
+    var _seen = {};
+    var _unique = [];
+    for (var _fi = 0; _fi < files.length; _fi++) {
+        var _k = files[_fi].webkitRelativePath || files[_fi].name;
+        if (!_seen[_k]) { _seen[_k] = true; _unique.push(files[_fi]); }
+    }
+    files = _unique;
+
+    var totalFiles = files.length;
+    var completed = 0;
+    var errors = 0;
+
+    /* 显示右下角浮动上传进度 */
+    var progressEl = document.getElementById("uploadFloatProgress");
+    if (!progressEl) {
+        progressEl = document.createElement("div");
+        progressEl.id = "uploadFloatProgress";
+        progressEl.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:280px;box-shadow:0 4px 20px rgba(0,0,0,.4)";
+        document.body.appendChild(progressEl);
+    }
+    progressEl.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:8px">📤 上传文件</div>' +
+        '<div style="font-size:12px;color:var(--text2);margin-bottom:6px" id="uploadProgressText">0/' + totalFiles + '</div>' +
+        '<div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:4px"><div id="uploadProgressFill" style="height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width .3s"></div></div>' +
+        '<div id="uploadSingleFileText" style="font-size:11px;color:var(--text2);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px"></div>' +
+        '<div style="height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-bottom:2px"><div id="uploadSingleProgressFill" style="height:100%;background:#22c55e;border-radius:2px;width:0%;transition:width .15s"></div></div>' +
+        '<div id="uploadSinglePct" style="font-size:10px;color:#22c55e;text-align:right;margin-bottom:4px"></div>' +
+        '<div id="uploadCurrentFile" style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px"></div>';
+    progressEl.style.display = "block";
+
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var filePath = file.name;
+        if (fileCurrentPath) {
+            var baseName = fileCurrentPath.split('/').pop();
+            if (!file.name.startsWith(baseName + '/') && file.name !== baseName) {
+                filePath = fileCurrentPath + '/' + file.name;
+            }
+        }
+        var curFileEl = document.getElementById("uploadCurrentFile");
+        if (curFileEl) curFileEl.textContent = '' + (i+1) + '/' + totalFiles + ' ' + file.name;
+
+        try {
+            await uploadFile(filePath, file, function(pct) {
+                var singleFill = document.getElementById("uploadSingleProgressFill");
+                if (singleFill) singleFill.style.width = pct + '%';
+                var singlePct = document.getElementById("uploadSinglePct");
+                if (singlePct) singlePct.textContent = pct + '%';
+            })
+            completed++;
+        } catch (e) {
+            errors++;
+            console.error("上传失败:", file.name, e);
+        }
+
+        var progressEl = document.getElementById("uploadProgressText");
+        var fillEl = document.getElementById("uploadProgressFill");
+        if (progressEl) progressEl.textContent = completed + '/' + totalFiles;
+        if (fillEl) fillEl.style.width = Math.round((completed + errors) / totalFiles * 100) + '%';
+    }
+
+    var pEl = document.getElementById("uploadFloatProgress");
+    if (pEl) { setTimeout(function(){ pEl.style.display = "none"; }, 1500); }
+    if (errors > 0) {
+        toast("上传完成，" + errors + " 个文件失败", "warning");
+    } else {
+        toast("上传成功，共 " + completed + " 个文件", "success");
+    }
+
+    event.target.value = "";
+    loadFileList(fileCurrentPath);
+    loadFileTree();
+}
+
+/* 文件夹上传处理 */
+async function handleFolderUpload(event) {
+    var files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    /* 去重 */
+    var _seen = {};
+    var _unique = [];
+    for (var _fi = 0; _fi < files.length; _fi++) {
+        var _k = files[_fi].webkitRelativePath || files[_fi].name;
+        if (!_seen[_k]) { _seen[_k] = true; _unique.push(files[_fi]); }
+    }
+    files = _unique;
+    var totalFiles = files.length;
+
+    /* 使用自定义弹窗确认，不用浏览器原生 alert */
+    showConfirm('\u5373\u5c06\u4e0a\u4f20 ' + totalFiles + ' \u4e2a\u6587\u4ef6\u5230\u5f53\u524d\u76ee\u5f55\uff0c\u662f\u5426\u7ee7\u7eed\uff1f', function() {
+        doFolderUpload(files, totalFiles);
+    });
+    event.target.value = "";
+}
+
+/* \u6267\u884c\u6587\u4ef6\u5939\u4e0a\u4f20 */
+async function doFolderUpload(files, totalFiles) {
+    var completed = 0;
+    var errors = 0;
+
+    var progressEl = document.getElementById("uploadFloatProgress");
+    if (!progressEl) {
+        progressEl = document.createElement("div");
+        progressEl.id = "uploadFloatProgress";
+        progressEl.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.4)";
+        document.body.appendChild(progressEl);
+    }
+    progressEl.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:8px">\u{1F4C2} \u4E0A\u4F20\u6587\u4EF6\u5939</div>' +
+        '<div style="font-size:12px;color:var(--text2);margin-bottom:6px" id="uploadProgressText">0/' + totalFiles + '</div>' +
+        '<div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:6px"><div id="uploadProgressFill" style="height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width .3s"></div></div>' +
+        '<div id="uploadSingleFileText" style="font-size:11px;color:var(--text2);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px"></div>' +
+        '<div style="height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-bottom:2px"><div id="uploadSingleProgressFill" style="height:100%;background:#22c55e;border-radius:2px;width:0%;transition:width .15s"></div></div>' +
+        '<div id="uploadSinglePct" style="font-size:10px;color:#22c55e;text-align:right;margin-bottom:4px"></div>';
+    progressEl.style.display = "block";
+
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var relPath = file.webkitRelativePath || file.name;
+        var filePath = relPath;
+
+        var singleFileText = document.getElementById("uploadSingleFileText");
+        if (singleFileText) singleFileText.textContent = (i+1) + '/' + totalFiles + ' ' + relPath;
+
+        try {
+            await uploadFile(filePath, file, function(pct) {
+                var singleFill = document.getElementById("uploadSingleProgressFill");
+                if (singleFill) singleFill.style.width = pct + '%';
+                var singlePct = document.getElementById("uploadSinglePct");
+                if (singlePct) singlePct.textContent = pct + '%';
+            });
+            completed++;
+        } catch (e) {
+            errors++;
+        }
+
+        var progressText = document.getElementById("uploadProgressText");
+        var fillEl = document.getElementById("uploadProgressFill");
+        if (progressText) progressText.textContent = completed + '/' + totalFiles;
+        if (fillEl) fillEl.style.width = Math.round((completed + errors) / totalFiles * 100) + '%';
+        var singleFill = document.getElementById("uploadSingleProgressFill");
+        if (singleFill) singleFill.style.width = '0%';
+        var singlePct = document.getElementById("uploadSinglePct");
+        if (singlePct) singlePct.textContent = '';
+    }
+
+    var pEl = document.getElementById("uploadFloatProgress");
+    if (pEl) { setTimeout(function(){ pEl.style.display = "none"; }, 2000); }
+    if (errors > 0) {
+        toast("\u6587\u4EF6\u5939\u4E0A\u4F20\u5B8C\u6210\uFF0C" + errors + " \u4E2A\u6587\u4EF6\u5931\u8D25", "warning");
+    } else {
+        toast("\u6587\u4EF6\u5939\u4E0A\u4F20\u6210\u529F\uFF0C\u5171 " + completed + " \u4E2A\u6587\u4EF6", "success");
+    }
+
+    loadFileList(fileCurrentPath);
+    loadFileTree();
+}
+
+function createNewFolder() {
+    showPrompt("请输入文件夹名称:", "", function(name) {
+        if (!name || !name.trim()) return;
+        var folderPath = fileCurrentPath ? fileCurrentPath + '/' + name.trim() : name.trim();
+        api("/files/mkdir", { method: "POST", body: { path: folderPath } })
+            .then(function() {
+                toast("文件夹创建成功", "success");
+                loadFileList(fileCurrentPath);
+                loadFileTree();
+            })
+            .catch(function(e) {
+                toast("创建失败: " + e.message, "error");
+            });
+    });
+}
+
+/* 删除单个文件/文件夹 */
+function deleteSingleFile(path) {
+    showConfirm("确定删除 " + path + " ?", function() {
+        showLoading();
+        api("/files/delete", { method: "POST", body: { path: path } })
+            .then(function() {
+                hideLoading();
+                toast("删除成功", "success");
+                loadFileList(fileCurrentPath);
+                loadFileTree();
+            })
+            .catch(function(e) {
+                hideLoading();
+                toast("删除失败: " + e.message, "error");
+            });
+    });
+}
+
+/* 批量删除 - 逐个调用删除接口 */
+async function batchDeleteFiles() {
+    if (fileSelected.size === 0) return;
+    var paths = [];
+    fileSelected.forEach(function(name) {
+        paths.push(fileCurrentPath ? fileCurrentPath + '/' + name : name);
+    });
+
+    showConfirm("确定删除选中的 " + paths.length + " 个文件/文件夹？", async function() {
+        showLoading();
+        var errors = 0;
+        for (var i = 0; i < paths.length; i++) {
+            try {
+                await api("/files/delete", { method: "POST", body: { path: paths[i] } });
+            } catch (e) {
+                errors++;
+            }
+        }
+        hideLoading();
+        if (errors > 0) {
+            toast("批量删除完成，" + errors + " 个失败", "warning");
+        } else {
+            toast("批量删除成功，共 " + paths.length + " 项", "success");
+        }
+        fileSelected.clear();
+        updateBatchButtons();
+        loadFileList(fileCurrentPath);
+        loadFileTree();
+    });
+}
+
+/* 批量移动 */
+/* 批量移动文件 - 弹出目录选择器 */
+async function batchMoveFiles() {
+    if (fileSelected.size === 0) return;
+    try {
+        showLoading();
+        var dirs = [{name: "根目录", path: "", depth: 0}];
+        await loadMoveDirs("", 0, dirs);
+        hideLoading();
+
+        var bodyHtml = '<div style="max-height:400px;overflow-y:auto">';
+        bodyHtml += '<div style="margin-bottom:12px;color:var(--text2);font-size:13px">选择目标目录：</div>';
+        for (var i = 0; i < dirs.length; i++) {
+            var d = dirs[i];
+            var indent = d.depth * 20;
+            bodyHtml += '<div class="file-row" style="cursor:pointer;padding:6px 12px 6px ' + (12 + indent) + 'px;border-radius:4px;margin-bottom:2px;font-size:13px" onclick="doBatchMove(this.dataset.path)" data-path="' + escHtml(d.path) + '">📁 ' + escHtml(d.name) + '</div>';
+        }
+        bodyHtml += '</div>';
+        openModal("选择目标目录", bodyHtml, "", false);
+    } catch(e) {
+        hideLoading();
+        toast("加载目录失败: " + e.message, "error");
+    }
+}
+
+/* 递归加载所有目录用于移动选择 */
+async function loadMoveDirs(parentPath, depth, result) {
+    if (depth > 10) return;
+    try {
+        var data = await api("/files/list?path=" + encodeURIComponent(parentPath));
+        var items = data.files || data.items || data || [];
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].is_dir || items[i].IsDir) {
+                var name = items[i].name || items[i].Name;
+                var fullPath = parentPath ? parentPath + "/" + name : name;
+                result.push({name: name, path: fullPath, depth: depth + 1});
+                await loadMoveDirs(fullPath, depth + 1, result);
+            }
+        }
+    } catch(e) {}
+}
+
+function doBatchMove(dest) {
+    closeModal();
+    var paths = [];
+    fileSelected.forEach(function(name) {
+        paths.push(fileCurrentPath ? fileCurrentPath + "/" + name : name);
+    });
+    showLoading();
+    api("/files/move", { method: "POST", body: { paths: paths, dest: dest } })
+        .then(function() {
+            hideLoading();
+            toast("批量移动成功", "success");
+            fileSelected.clear();
+            updateBatchButtons();
+            loadFileList(fileCurrentPath);
+            loadFileTree();
+        })
+        .catch(function(e) {
+            hideLoading();
+            toast("移动失败: " + e.message, "error");
+        });
+}
+
+/* 下载文件 */
+function downloadFile(path) {
+    var url = API_BASE + "/files/download?path=" + encodeURIComponent(path);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = path.split('/').pop();
+    if (token) {
+        /* 需要带Token的请求 */
+        fetch(url, { headers: { "Authorization": "Bearer " + token } })
+            .then(function(resp) { return resp.blob(); })
+            .then(function(blob) {
+                var blobUrl = URL.createObjectURL(blob);
+                a.href = blobUrl;
+                a.click();
+                URL.revokeObjectURL(blobUrl);
+            })
+            .catch(function(e) { toast("下载失败: " + e.message, "error"); });
+    } else {
+        a.click();
+    }
+}
+
+/* 查看文件 */
+async function viewFile(path) {
+    var ext = path.split('.').pop().toLowerCase();
+    var imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico'];
+    var textExts = ['txt', 'md', 'json', 'xml', 'yaml', 'yml', 'csv', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'js', 'ts', 'py', 'go', 'java', 'c', 'cpp', 'h', 'html', 'css', 'sh', 'bat', 'sql', 'rs', 'rb', 'php', 'vue', 'jsx', 'tsx', 'svelte'];
+
+    if (imageExts.indexOf(ext) >= 0) {
+        /* 显示图片预览 */
+        var imgUrl = API_BASE + "/files/download?path=" + encodeURIComponent(path);
+        var bodyHtml = '<div class="file-viewer"><img src="' + imgUrl + '" style="max-width:100%" onerror="this.src=\'\'; this.alt=\'图片加载失败\'' + (token ? '; this.parentElement.innerHTML=\'<p>需要认证加载图片</p>\'' : '') + '"></div>';
+        var footer = '<button class="btn" onclick="closeModal()">关闭</button>' +
+            '<button class="btn btn-primary" onclick="downloadFile(\'' + escHtml(path) + '\')">下载</button>';
+        openModal("查看: " + path.split('/').pop(), bodyHtml, footer, true);
+    } else if (textExts.indexOf(ext) >= 0) {
+        /* 显示文本内容 + 编辑器 */
+        try {
+            showLoading();
+            var resp = await fetch(API_BASE + "/files/download?path=" + encodeURIComponent(path), {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            var text = await resp.text();
+            hideLoading();
+
+            var bodyHtml = '<textarea id="fileEditText" style="width:100%;height:400px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:13px;color:var(--text);resize:vertical;outline:none">' + escHtml(text) + '</textarea>';
+            var footer = '<button class="btn" onclick="closeModal()">关闭</button>' +
+                '<button class="btn btn-primary" onclick="saveFileEdit(\'' + escHtml(path) + '\')">保存</button>';
+            openModal("编辑: " + path.split('/').pop(), bodyHtml, footer, true);
+        } catch (e) {
+            hideLoading();
+            toast("读取文件失败: " + e.message, "error");
+        }
+    } else {
+        /* 其他文件直接下载 */
+        downloadFile(path);
+    }
+}
+
+/* 直接编辑文件 */
+async function editFileDirect(path) {
+    var ext = path.split('.').pop().toLowerCase();
+    var textExts = ['txt', 'md', 'json', 'xml', 'yaml', 'yml', 'csv', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'js', 'ts', 'py', 'go', 'java', 'c', 'cpp', 'h', 'html', 'css', 'sh', 'bat', 'sql', 'rs', 'rb', 'php', 'vue', 'jsx', 'tsx', 'svelte'];
+    if (textExts.indexOf(ext) < 0) {
+        toast("此文件类型不支持编辑，请使用查看功能", "warning");
+        return;
+    }
+    try {
+        showLoading();
+        var resp = await fetch(API_BASE + "/files/download?path=" + encodeURIComponent(path), {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        var text = await resp.text();
+        hideLoading();
+
+        var bodyHtml = '<div class="form-group"><label>文件路径: <span>' + escHtml(path) + '</label></div>' +
+            '<textarea id="fileEditText" style="width:100%;height:400px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:13px;color:var(--text);resize:vertical;outline:none;tab-size:4">' + escHtml(text) + '</textarea>';
+        var footer = '<button class="btn" onclick="closeModal()">取消</button>' +
+            '<button class="btn btn-primary" onclick="saveFileEdit(\'' + escHtml(path) + '\')">💾 保存</button>';
+        openModal("编辑: " + path.split('/').pop(), bodyHtml, footer, true);
+    } catch (e) {
+        hideLoading();
+        toast("读取文件失败: " + e.message, "error");
+    }
+}
+
+/* 保存编辑的文件 */
+async function saveFileEdit(path) {
+    var textarea = document.getElementById("fileEditText");
+    if (!textarea) return;
+
+    var content = textarea.value;
+    try {
+        showLoading();
+        var formData = new FormData();
+        formData.append("path", path);
+        formData.append("file", new Blob([content], { type: "text/plain" }), path.split('/').pop());
+
+        var resp = await fetch(API_BASE + "/files/upload", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token },
+            body: formData
+        });
+
+        if (!resp.ok) throw new Error("保存失败");
+        hideLoading();
+        toast("文件保存成功", "success");
+        closeModal();
+    } catch (e) {
+        hideLoading();
+        toast("保存失败: " + e.message, "error");
+    }
+}
+
+/* ========================================================
+   页面3：设备管理
+   ======================================================== */
+
+async function renderDevices(container) {
+    /* 添加刷新按钮到页头 */
+    var headerActions = document.getElementById("headerActions");
+    headerActions.innerHTML = '<button class="btn" onclick="renderDevices(document.getElementById(\u0027contentBody\u0027))">🔄 刷新</button>';
+
+    container.innerHTML = '<div class="no-data">加载中...</div>';
+
+    try {
+        var data = await api("/devices");
+        var devices = data.devices || data || [];
+
+        if (devices.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">🖥️</div><div class="text">暂无设备</div></div>';
+            return;
+        }
+
+        var html = '<div class="table-wrap"><table><thead><tr>' +
+            '<th>设备ID</th><th>设备名称</th><th>IP地址</th><th>状态</th><th>最后在线</th><th>首次连接</th><th>操作</th>' +
+            '</tr></thead><tbody>';
+
+        var now = Date.now() / 1000;
+        for (var i = 0; i < devices.length; i++) {
+            var d = devices[i];
+            var lastSeen = d.last_seen || d.lastSeen || 0;
+            var isOnline = (now - lastSeen) < 300;
+            var statusBadge = isOnline ? '<span class="badge badge-green">在线</span>' : '<span class="badge badge-red">离线</span>';
+
+            html += '<tr>' +
+                '<td style="font-family:monospace;font-size:12px">' + escHtml(d.device_id || d.deviceId || d.id || '-') + '</td>' +
+                '<td>' + escHtml(d.device_name || d.deviceName || d.name || '-') + '</td>' +
+                '<td style="font-family:monospace">' + escHtml(d.ip || d.addr || '-') + '</td>' +
+                '<td>' + statusBadge + '</td>' +
+                '<td style="font-size:13px">' + formatTime(lastSeen) + '</td>' +
+                '<td style="font-size:13px">' + formatTime(d.created_at || d.createdAt || d.first_seen || 0) + '</td>' +
+                '<td><button class="btn btn-sm btn-danger" onclick="deleteDevice(\'' + escHtml(d.id || d.device_id || '') + '\')">删除</button></td>' +
+                '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="no-data">加载设备列表失败: ' + escHtml(e.message) + '</div>';
+    }
+}
+
+/* 删除设备 */
+function deleteDevice(deviceId) {
+    showConfirm("确定删除此设备？该设备将无法同步。", function() {
+        showLoading();
+        api("/devices/delete", { method: "POST", body: { id: deviceId } })
+            .then(function() {
+                hideLoading();
+                toast("设备已删除", "success");
+                renderDevices(document.getElementById("contentBody"));
+            })
+            .catch(function(e) {
+                hideLoading();
+                toast("删除失败: " + e.message, "error");
+            });
+    });
+}
+
+/* ========================================================
+   页面4：Token管理
+   ======================================================== */
+
+async function renderTokens(container) {
+    var headerActions = document.getElementById("headerActions");
+    headerActions.innerHTML = '<div class="btn-group">' +
+        '<button class="btn btn-primary" onclick="createToken()">➕ 创建Token</button>' +
+        '<button class="btn" onclick="renderTokens(document.getElementById(\u0027contentBody\u0027))">🔄 刷新</button>' +
+    '</div>';
+
+    container.innerHTML = '<div class="no-data">加载中...</div>';
+
+    try {
+        var data = await api("/tokens");
+        var tokens = data.tokens || data || [];
+
+        if (tokens.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">🔑</div><div class="text">暂无Token，请创建新Token给客户端设备使用</div></div>';
+            return;
+        }
+
+        var html = '<div class="table-wrap"><table><thead><tr>' +
+            '<th>Token</th><th>绑定设备</th><th>状态</th><th>创建时间</th><th>操作</th>' +
+            '</tr></thead><tbody>';
+
+        for (var i = 0; i < tokens.length; i++) {
+            var t = tokens[i];
+            var tokenVal = t.token || t.value || "";
+            var displayToken = tokenVal.length > 20 ? tokenVal.substring(0, 20) + "..." : tokenVal;
+            var deviceName = t.device_id || t.device_id || "";
+            var isBound = deviceName && deviceName !== "";
+            var statusHtml = isBound
+                ? '<span class="badge badge-green">已绑定</span>'
+                : '<span class="badge badge-yellow">待连接</span>';
+            var deviceHtml = isBound ? escHtml(deviceName) : '<span style="color:var(--text2)">待连接</span>';
+
+            html += '<tr>' +
+                '<td><span class="token-display" onclick="showFullToken(\'' + escHtml(tokenVal) + '\')">' + escHtml(displayToken) + '</span></td>' +
+                '<td>' + deviceHtml + '</td>' +
+                '<td>' + statusHtml + '</td>' +
+                '<td style="font-size:13px">' + formatTime(t.created_at || t.createdAt || 0) + '</td>' +
+                '<td><button class="btn btn-sm btn-danger" onclick="deleteToken(\'' + escHtml(String(t.id || '')) + '\')">删除</button></td>' +
+                '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="no-data">加载Token列表失败: ' + escHtml(e.message) + '</div>';
+    }
+}
+
+/* 显示完整Token */
+function showFullToken(tokenVal) {
+    var body = '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:monospace;font-size:14px;word-break:break-all;user-select:all;max-width:100%;overflow:hidden">' + escHtml(tokenVal) + '</div>';
+    var footer = '<button class="btn" onclick="closeModal()">关闭</button>' +
+        '<button class="btn btn-primary" onclick="copyToClipboard(\'' + escHtml(tokenVal) + '\')">复制</button>';
+    openModal("Token详情", body, footer);
+}
+
+/* 复制到剪贴板 */
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        toast("已复制到剪贴板", "success");
+    } catch (e) {
+        /* 降级方案 */
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        toast("已复制到剪贴板", "success");
+    }
+}
+
+/* 创建Token - 不需要输入设备名，设备上线后自动绑定 */
+function createToken() {
+    showLoading();
+    api("/tokens/create", { method: "POST" })
+        .then(function(data) {
+            hideLoading();
+            toast("Token创建成功", "success");
+            if (data.token) {
+                showFullToken(data.token);
+            }
+            renderTokens(document.getElementById("contentBody"));
+        })
+        .catch(function(e) {
+            hideLoading();
+            toast("创建失败: " + e.message, "error");
+        });
+}
+
+/* 删除Token - 通过Token的数据库ID删除 */
+function deleteToken(tokenId) {
+    showConfirm("确定删除此Token？关联设备将无法同步。", function() {
+        showLoading();
+        api("/tokens/delete", { method: "POST", body: { id: parseInt(tokenId) } })
+            .then(function() {
+                hideLoading();
+                toast("Token已删除", "success");
+                renderTokens(document.getElementById("contentBody"));
+            })
+            .catch(function(e) {
+                hideLoading();
+                toast("删除失败: " + e.message, "error");
+            });
+    });
+}
+
+/* ========================================================
+   页面5：冲突中心
+   ======================================================== */
+
+async function renderConflicts(container) {
+    container.innerHTML = '<div class="no-data">加载中...</div>';
+
+    try {
+        var data = await api("/conflicts");
+        var conflicts = data.conflicts || data || [];
+
+        if (!conflicts || conflicts.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">✅</div><div class="text">当前没有冲突文件</div></div>';
+            return;
+        }
+
+        var html = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">' +
+            '<span style="color:var(--text2);font-size:13px">共 ' + conflicts.length + ' 个冲突文件</span>' +
+            '<div style="margin-left:auto;display:flex;gap:8px">' +
+                '<button class="btn btn-sm btn-primary" onclick="batchResolveConflicts(\'keep_server\')">全部保留服务端</button>' +
+                '<button class="btn btn-sm btn-success" onclick="batchResolveConflicts(\'keep_remote\')">全部保留远端</button>' +
+                '<button class="btn btn-sm btn-danger" onclick="batchResolveConflicts(\'delete\')">全部删除</button>' +
+            '</div>' +
+        '</div>';
+        for (var i = 0; i < conflicts.length; i++) {
+            var c = conflicts[i];
+            var relPath = c.rel_path || c.RelPath || "";
+            var reason = c.reason || c.Reason || "版本冲突";
+            var conflictPath = c.conflict_path || c.ConflictPath || "";
+            var deviceID = c.device_id || c.DeviceID || "";
+            var createdAt = c.created_at || c.CreatedAt || 0;
+            var cid = c.id || c.ID || 0;
+            var timeStr = createdAt > 0 ? formatTime(createdAt) : "";
+
+            html += '<div class="conflict-item" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">' +
+                '<div style="font-size:24px;flex-shrink:0">⚠️</div>' +
+                '<div style="flex:1;min-width:0">' +
+                    '<div style="font-weight:600;margin-bottom:4px;word-break:break-all">' + escHtml(relPath) + '</div>' +
+                    '<div style="font-size:12px;color:var(--text2)">' +
+                        '设备: ' + escHtml(deviceID.substring(0, 8)) + '... &nbsp;|&nbsp; ' +
+                        '时间: ' + escHtml(timeStr) +
+                    '</div>' +
+                '</div>' +
+                '<div style="display:flex;gap:6px;flex-shrink:0;align-items:center">' +
+                    '<button class="btn btn-sm" onclick="showConflictDetail(this.dataset.path,this.dataset.reason,this.dataset.conflict)" data-path="'+escHtml(relPath)+'" data-reason="'+escHtml(reason)+'" data-conflict="'+escHtml(conflictPath)+'">说明</button>' +
+                    '<button class="btn btn-sm btn-success" onclick="resolveConflict('+cid+', \'keep_server\')">保留服务端</button>' +
+                    '<button class="btn btn-sm btn-primary" onclick="resolveConflict('+cid+', \'keep_remote\')">保留远端</button>' +
+                    '<button class="btn btn-sm btn-danger" onclick="resolveConflict('+cid+', \'delete\')">全部删除</button>' +
+                '</div>' +
+                '</div>';
+        }
+
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="no-data">加载冲突列表失败: ' + escHtml(e.message) + '</div>';
+    }
+}
+
+/* 显示冲突详情 */
+function showConflictDetail(relPath, reason, conflictPath) {
+    var bodyHtml = '<div style="line-height:1.8">' +
+        '<div><strong>冲突文件:</strong> ' + escHtml(relPath) + '</div>' +
+        '<div><strong>冲突原因:</strong> ' + escHtml(reason) + '</div>' +
+        '<div><strong>冲突副本:</strong> ' + escHtml(conflictPath) + '</div>' +
+        '<div style="margin-top:12px;padding:12px;background:rgba(234,179,8,.1);border-radius:8px;border:1px solid rgba(234,179,8,.3);font-size:13px">' +
+            '<div style="margin-bottom:8px"><strong>解决说明:</strong></div>' +
+            '<div>• <strong>保留服务端:</strong> 使用服务端当前版本，删除冲突副本</div>' +
+            '<div>• <strong>保留远端:</strong> 用冲突副本覆盖服务端文件</div>' +
+            '<div>• <strong>全部删除:</strong> 同时删除服务端文件和冲突副本</div>' +
+        '</div>' +
+        '</div>';
+    openModal("冲突详情", bodyHtml, "", false);
+}
+
+/* 批量解决所有冲突 */
+async function batchResolveConflicts(action) {
+    var actionText = { keep_server: '全部保留服务端版本', keep_remote: '全部保留远端版本', 'delete': '全部删除' };
+    var text = actionText[action] || action;
+    showConfirm('确定' + text + '？将处理所有冲突文件。', async function() {
+        try {
+            showLoading();
+            var data = await api('/conflicts');
+            var conflicts = data.conflicts || data || [];
+            var successCount = 0;
+            var failCount = 0;
+            for (var i = 0; i < conflicts.length; i++) {
+                var cid = conflicts[i].id || conflicts[i].ID || 0;
+                if (cid === 0) continue;
+                try {
+                    await api('/conflicts/resolve', { method: 'POST', body: { id: cid, action: action } });
+                    successCount++;
+                } catch(e) {
+                    failCount++;
+                }
+            }
+            hideLoading();
+            if (failCount === 0) {
+                toast('全部处理完成，共 ' + successCount + ' 个', 'success');
+            } else {
+                toast('成功 ' + successCount + ' 个，失败 ' + failCount + ' 个', 'warning');
+            }
+            renderConflicts(document.getElementById('contentBody'));
+        } catch (e) {
+            hideLoading();
+            toast('操作失败: ' + e.message, 'error');
+        }
+    });
+}
+
+/* 解决冲突 */
+async function resolveConflict(id, action) {
+    var actionText = { keep_server: "保留服务端版本", keep_remote: "保留远端版本", delete: "全部删除" };
+    var text = actionText[action] || action;
+    showConfirm("确定" + text + "？", async function() {
+        try {
+            showLoading();
+            await api("/conflicts/resolve", { method: "POST", body: { id: id, action: action } });
+            hideLoading();
+            toast("冲突已解决", "success");
+            renderConflicts(document.getElementById("contentBody"));
+        } catch (e) {
+            hideLoading();
+            toast("操作失败: " + e.message, "error");
+        }
+    });
+}
+
+/* ========================================================
+   页面6：资源监控
+   ======================================================== */
+
+var monitorCharts = {};
+var monitorTimeRange = 60; /* 默认显示最近60个数据点 */
+var monitorLastData = null; /* 缓存最新数据 */
+
+/* 获取指标等级颜色 */
+function getMetricLevel(val, warn, crit) {
+    if (val >= crit) return 'red';
+    if (val >= warn) return 'yellow';
+    return 'green';
+}
+
+/* 格式化字节为人类可读 */
+function fmtBytes(b) {
+    if (!b || b === 0) return "0 B";
+    var u = ["B","KB","MB","GB","TB"];
+    var i = 0;
+    while (b >= 1024 && i < u.length-1) { b /= 1024; i++; }
+    return b.toFixed(i > 0 ? 1 : 0) + " " + u[i];
+}
+
+/* 格式化运行时间 */
+function fmtUptime(seconds) {
+    if (!seconds) return "--";
+    var d = Math.floor(seconds / 86400);
+    var h = Math.floor((seconds % 86400) / 3600);
+    var m = Math.floor((seconds % 3600) / 60);
+    var s = Math.floor(seconds % 60);
+    var parts = [];
+    if (d > 0) parts.push(d + "天");
+    if (h > 0) parts.push(h + "时");
+    if (m > 0) parts.push(m + "分");
+    parts.push(s + "秒");
+    return parts.join("");
+}
+
+function renderMonitor(container) {
+    /* 渲染公有云控制台风格的监控页面 */
+    container.innerHTML =
+        /* 顶部工具栏 */
+        '<div class="monitor-top-bar">' +
+            '<div class="monitor-actions">' +
+                '<button class="btn" onclick="refreshMonitor()">🔄 刷新</button>' +
+                '<button class="btn btn-warning" onclick="triggerGC()">🧹 清理Go内存</button>' +
+                '<button class="btn btn-danger" onclick="triggerSystemGC()">🗑️ 强制GC回收</button>' +
+            '</div>' +
+            '<div class="monitor-time-range">' +
+                '<button class="btn active" data-range="60" onclick="setTimeRange(60,this)">实时</button>' +
+                '<button class="btn" data-range="300" onclick="setTimeRange(300,this)">5分钟</button>' +
+                '<button class="btn" data-range="900" onclick="setTimeRange(900,this)">15分钟</button>' +
+                '<button class="btn" data-range="3600" onclick="setTimeRange(3600,this)">1小时</button>' +
+            '</div>' +
+        '</div>' +
+
+        /* 指标概览卡片 */
+        '<div class="monitor-metrics-row" id="monitorMetricsRow">' +
+            '<div class="metric-card mc-blue"><div class="mc-icon">⚡</div><div class="mc-label">CPU 使用率</div><div class="mc-value" id="mcCPU">--<span class="mc-unit">%</span></div><div class="mc-bar"><div class="mc-bar-fill" id="mcCPUBar" style="width:0%"></div></div><div class="mc-sub" id="mcCPUSub">-</div></div>' +
+            '<div class="metric-card mc-green"><div class="mc-icon">🧠</div><div class="mc-label">内存使用率</div><div class="mc-value" id="mcMem">--<span class="mc-unit">%</span></div><div class="mc-bar"><div class="mc-bar-fill" id="mcMemBar" style="width:0%"></div></div><div class="mc-sub" id="mcMemSub">-</div></div>' +
+            '<div class="metric-card mc-yellow"><div class="mc-icon">💾</div><div class="mc-label">Swap 使用率</div><div class="mc-value" id="mcSwap">--<span class="mc-unit">%</span></div><div class="mc-bar"><div class="mc-bar-fill" id="mcSwapBar" style="width:0%"></div></div><div class="mc-sub" id="mcSwapSub">-</div></div>' +
+            '<div class="metric-card mc-purple"><div class="mc-icon">💿</div><div class="mc-label">磁盘使用率</div><div class="mc-value" id="mcDisk">--<span class="mc-unit">%</span></div><div class="mc-bar"><div class="mc-bar-fill" id="mcDiskBar" style="width:0%"></div></div><div class="mc-sub" id="mcDiskSub">-</div></div>' +
+            '<div class="metric-card mc-blue"><div class="mc-icon">🔄</div><div class="mc-label">Goroutines</div><div class="mc-value" id="mcGoroutines">--</div><div class="mc-sub">活跃协程数</div></div>' +
+            '<div class="metric-card mc-green"><div class="mc-icon">⏱️</div><div class="mc-label">运行时间</div><div class="mc-value" id="mcUptime" style="font-size:18px">--</div><div class="mc-sub">服务启动时长</div></div>' +
+        '</div>' +
+
+        /* 图表区域 */
+        '<div class="monitor-charts">' +
+            '<div class="monitor-chart-card">' +
+                '<div class="monitor-chart-header"><h4>⚡ CPU 使用率</h4><span class="mch-current" id="chCurCPU">--%</span></div>' +
+                '<canvas id="chartCPU"></canvas>' +
+            '</div>' +
+            '<div class="monitor-chart-card">' +
+                '<div class="monitor-chart-header"><h4>🧠 内存使用率</h4><span class="mch-current" id="chCurMem">--%</span></div>' +
+                '<canvas id="chartMem"></canvas>' +
+            '</div>' +
+            '<div class="monitor-chart-card">' +
+                '<div class="monitor-chart-header"><h4>💾 Swap 使用率</h4><span class="mch-current" id="chCurSwap">--%</span></div>' +
+                '<canvas id="chartSwap"></canvas>' +
+            '</div>' +
+            '<div class="monitor-chart-card">' +
+                '<div class="monitor-chart-header"><h4>💿 磁盘使用率</h4><span class="mch-current" id="chCurDisk">--%</span></div>' +
+                '<canvas id="chartDisk"></canvas>' +
+            '</div>' +
+        '</div>' +
+
+        /* 详细信息面板 */
+        '<div class="monitor-detail-grid">' +
+            '<div class="monitor-detail-card">' +
+                '<h4>⚙️ 进程信息</h4>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">进程内存分配</span><span class="mdr-value" id="mdMemAlloc">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">进程内存系统</span><span class="mdr-value" id="mdMemSys">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">GC次数</span><span class="mdr-value" id="mdGCCnt">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">上次GC暂停</span><span class="mdr-value" id="mdGCPause">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">Heap对象数</span><span class="mdr-value" id="mdHeapObj">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">堆内存使用</span><span class="mdr-value" id="mdHeapInuse">--</span></div>' +
+            '</div>' +
+            '<div class="monitor-detail-card">' +
+                '<h4>📊 系统信息</h4>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">CPU核心数</span><span class="mdr-value" id="mdCPUCores">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">系统负载(1/5/15分)</span><span class="mdr-value" id="mdLoad">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">总内存</span><span class="mdr-value" id="mdMemTotal">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">可用内存</span><span class="mdr-value" id="mdMemAvail">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">总磁盘</span><span class="mdr-value" id="mdDiskTotal">--</span></div>' +
+                '<div class="monitor-detail-row"><span class="mdr-label">可用磁盘</span><span class="mdr-value" id="mdDiskFree">--</span></div>' +
+            '</div>' +
+            '<div class="monitor-detail-card">' +
+                '<h4>🔧 监控控制</h4>' +
+                '<div style="display:flex;flex-direction:column;gap:10px">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--text2)">数据采集频率</span><span style="font-size:13px;font-weight:600">1秒/次</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--text2)">最大数据点</span><span style="font-size:13px;font-weight:600" id="mdMaxPoints">' + MAX_CHART_POINTS + '</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--text2)">当前数据点</span><span style="font-size:13px;font-weight:600" id="mdCurPoints">0</span></div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:var(--text2)">连接状态</span><span id="mdConnStatus" class="badge badge-green">已连接</span></div>' +
+                    '<button class="btn btn-danger" style="margin-top:8px" onclick="resetMonitorData()">🗑️ 清空图表数据</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+
+    /* 初始化图表数据 */
+    chartData = { cpu: [], memory: [], swap: [], disk: [] };
+
+    /* 初始化Canvas */
+    setTimeout(function() {
+        monitorCharts.cpu = document.getElementById("chartCPU");
+        monitorCharts.mem = document.getElementById("chartMem");
+        monitorCharts.swap = document.getElementById("chartSwap");
+        monitorCharts.disk = document.getElementById("chartDisk");
+        drawAllCharts();
+        startMonitorSSE();
+    }, 100);
+}
+
+/* 设置时间范围 */
+function setTimeRange(seconds, btn) {
+    monitorTimeRange = seconds;
+    MAX_CHART_POINTS = seconds;
+    /* 更新按钮样式 */
+    var btns = document.querySelectorAll('.monitor-time-range .btn');
+    btns.forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    /* 更新显示 */
+    var mdMax = document.getElementById("mdMaxPoints");
+    if (mdMax) mdMax.textContent = seconds;
+}
+
+/* 刷新监控数据 */
+async function refreshMonitor() {
+    try {
+        var data = await api("/metrics");
+        handleMonitorData(data);
+        toast("数据已刷新", "success");
+    } catch (e) {
+        toast("刷新失败: " + e.message, "error");
+    }
+}
+
+/* 重置图表数据 */
+function resetMonitorData() {
+    chartData = { cpu: [], memory: [], swap: [], disk: [] };
+    drawAllCharts();
+    toast("图表数据已清空", "success");
+}
+
+/* 强制GC回收 */
+async function triggerSystemGC() {
+    try {
+        showLoading();
+        await api("/metrics/gc", { method: "POST" });
+        hideLoading();
+        toast("GC回收已执行", "success");
+    } catch (e) {
+        hideLoading();
+        toast("GC回收失败: " + e.message, "error");
+    }
+}
+
+/* 开始SSE连接 */
+function startMonitorSSE() {
+    stopMonitorSSE();
+    if (!token) return;
+
+    try {
+        monitorSSE = new EventSource('/api/admin/metrics/stream?token=' + encodeURIComponent(token));
+
+        monitorSSE.onmessage = function(event) {
+            try {
+                var d = JSON.parse(event.data);
+                handleMonitorData(d);
+            } catch (e) {
+                console.error("SSE数据解析错误:", e);
+            }
+        };
+
+        monitorSSE.onerror = function() {
+            console.warn("SSE连接失败，切换到轮询模式");
+            var statusEl = document.getElementById("mdConnStatus");
+            if (statusEl) { statusEl.className = "badge badge-yellow"; statusEl.textContent = "轮询中"; }
+            stopMonitorSSE();
+            startMonitorPolling();
+        };
+
+        monitorSSE.onopen = function() {
+            var statusEl = document.getElementById("mdConnStatus");
+            if (statusEl) { statusEl.className = "badge badge-green"; statusEl.textContent = "已连接"; }
+        };
+    } catch (e) {
+        console.warn("SSE初始化失败，使用轮询模式:", e);
+        startMonitorPolling();
+    }
+}
+
+/* 停止SSE */
+function stopMonitorSSE() {
+    if (monitorSSE) {
+        monitorSSE.close();
+        monitorSSE = null;
+    }
+    if (monitorPollTimer) {
+        clearInterval(monitorPollTimer);
+        monitorPollTimer = null;
+    }
+}
+
+/* 轮询模式回退 */
+function startMonitorPolling() {
+    monitorPollTimer = setInterval(async function() {
+        if (currentPage !== "monitor") return;
+        try {
+            var data = await api("/metrics");
+            handleMonitorData(data);
+        } catch (e) {
+            console.error("轮询获取指标失败:", e);
+        }
+    }, 2000);
+}
+
+/* 处理监控数据 */
+function handleMonitorData(d) {
+    if (!d) return;
+    monitorLastData = d;
+
+    /* 解析嵌套JSON结构 */
+    var cpuVal = 0, memVal = 0, swapVal = 0, diskVal = 0;
+    var cpuCores = 0, load1 = 0, load5 = 0, load15 = 0;
+    var memTotal = 0, memUsed = 0, memAvail = 0;
+    var swapTotal = 0, swapUsed = 0;
+    var diskTotal = 0, diskUsed = 0, diskFree = 0;
+    var goroutines = 0, uptime = 0, memAlloc = 0, memSys = 0, numGC = 0, lastGCPause = 0, heapObj = 0, heapInuse = 0;
+
+    if (d.cpu) {
+        cpuVal = d.cpu.usage_percent || 0;
+        cpuCores = d.cpu.cores || 0;
+        load1 = d.cpu.load1 || d.cpu.load1m || d.cpu.load_avg && d.cpu.load_avg[0] || 0;
+        load5 = d.cpu.load5 || d.cpu.load5m || d.cpu.load_avg && d.cpu.load_avg[1] || 0;
+        load15 = d.cpu.load15 || d.cpu.load15m || d.cpu.load_avg && d.cpu.load_avg[2] || 0;
+    }
+    if (d.memory) {
+        memVal = d.memory.used_percent || 0;
+        memTotal = d.memory.total || 0;
+        memUsed = d.memory.used || 0;
+        memAvail = d.memory.available || d.memory.free || 0;
+    }
+    if (d.swap) {
+        swapVal = d.swap.used_percent || 0;
+        swapTotal = d.swap.total || 0;
+        swapUsed = d.swap.used || 0;
+    }
+    if (d.disk) {
+        diskVal = d.disk.used_percent || 0;
+        diskTotal = d.disk.total || 0;
+        diskUsed = d.disk.used || 0;
+        diskFree = d.disk.free || d.disk.available || 0;
+    }
+    goroutines = d.process && d.process.goroutines || d.goroutines || d.num_goroutine || 0;
+    uptime = d.process && d.process.uptime || d.uptime_seconds || d.uptime || 0;
+    memAlloc = d.process_memory || d.process && d.process.mem_alloc || d.mem_alloc || 0;
+    memSys = d.process && d.process.mem_sys || d.mem_sys || 0;
+    numGC = d.process && d.process.num_gc || d.num_gc || 0;
+    lastGCPause = d.process && d.process.last_gc_pause || d.last_gc_pause || 0;
+    heapObj = d.process && d.process.heap_objects || d.heap_objects || 0;
+    heapInuse = d.process && d.process.heap_inuse || d.heap_inuse || 0;
+
+    /* 推入数据点 */
+    chartData.cpu.push(cpuVal);
+    chartData.memory.push(memVal);
+    chartData.swap.push(swapVal);
+    chartData.disk.push(diskVal);
+
+    /* 限制最大点数 */
+    var max = MAX_CHART_POINTS || 60;
+    if (chartData.cpu.length > max) chartData.cpu.shift();
+    if (chartData.memory.length > max) chartData.memory.shift();
+    if (chartData.swap.length > max) chartData.swap.shift();
+    if (chartData.disk.length > max) chartData.disk.shift();
+
+    /* 更新概览卡片 */
+    var cpuLevel = getMetricLevel(cpuVal, 50, 80);
+    var memLevel = getMetricLevel(memVal, 60, 85);
+    var swapLevel = getMetricLevel(swapVal, 50, 80);
+    var diskLevel = getMetricLevel(diskVal, 70, 90);
+
+    /* CPU卡片 */
+    var mcCPU = document.getElementById("mcCPU");
+    if (mcCPU) { mcCPU.innerHTML = cpuVal.toFixed(1) + '<span class="mc-unit">%</span>'; }
+    var mcCPUBar = document.getElementById("mcCPUBar");
+    if (mcCPUBar) { mcCPUBar.style.width = cpuVal + '%'; }
+    var mcCPUSub = document.getElementById("mcCPUSub");
+    if (mcCPUSub) { mcCPUSub.textContent = cpuCores + " 核 · 负载 " + load1.toFixed(2) + "/" + load5.toFixed(2) + "/" + load15.toFixed(2); }
+    var cpuCard = mcCPU ? mcCPU.closest('.metric-card') : null;
+    if (cpuCard) { cpuCard.className = 'metric-card mc-' + cpuLevel; }
+
+    /* 内存卡片 */
+    var mcMem = document.getElementById("mcMem");
+    if (mcMem) { mcMem.innerHTML = memVal.toFixed(1) + '<span class="mc-unit">%</span>'; }
+    var mcMemBar = document.getElementById("mcMemBar");
+    if (mcMemBar) { mcMemBar.style.width = memVal + '%'; }
+    var mcMemSub = document.getElementById("mcMemSub");
+    if (mcMemSub) { mcMemSub.textContent = fmtBytes(memUsed) + " / " + fmtBytes(memTotal); }
+    var memCard = mcMem ? mcMem.closest('.metric-card') : null;
+    if (memCard) { memCard.className = 'metric-card mc-' + memLevel; }
+
+    /* Swap卡片 */
+    var mcSwap = document.getElementById("mcSwap");
+    if (mcSwap) { mcSwap.innerHTML = swapVal.toFixed(1) + '<span class="mc-unit">%</span>'; }
+    var mcSwapBar = document.getElementById("mcSwapBar");
+    if (mcSwapBar) { mcSwapBar.style.width = swapVal + '%'; }
+    var mcSwapSub = document.getElementById("mcSwapSub");
+    if (mcSwapSub) { mcSwapSub.textContent = fmtBytes(swapUsed) + " / " + fmtBytes(swapTotal); }
+    var swapCard = mcSwap ? mcSwap.closest('.metric-card') : null;
+    if (swapCard) { swapCard.className = 'metric-card mc-' + swapLevel; }
+
+    /* 磁盘卡片 */
+    var mcDisk = document.getElementById("mcDisk");
+    if (mcDisk) { mcDisk.innerHTML = diskVal.toFixed(1) + '<span class="mc-unit">%</span>'; }
+    var mcDiskBar = document.getElementById("mcDiskBar");
+    if (mcDiskBar) { mcDiskBar.style.width = diskVal + '%'; }
+    var mcDiskSub = document.getElementById("mcDiskSub");
+    if (mcDiskSub) { mcDiskSub.textContent = fmtBytes(diskUsed) + " / " + fmtBytes(diskTotal) + " · 剩余 " + fmtBytes(diskFree); }
+    var diskCard = mcDisk ? mcDisk.closest('.metric-card') : null;
+    if (diskCard) { diskCard.className = 'metric-card mc-' + diskLevel; }
+
+    /* Goroutines */
+    var mcGor = document.getElementById("mcGoroutines");
+    if (mcGor) { mcGor.textContent = goroutines; }
+
+    /* 运行时间 */
+    var mcUp = document.getElementById("mcUptime");
+    if (mcUp) { mcUp.textContent = uptime || "--"; }
+
+    /* 图表当前值 */
+    var chCPU = document.getElementById("chCurCPU");
+    if (chCPU) chCPU.textContent = cpuVal.toFixed(1) + "%";
+    var chMem = document.getElementById("chCurMem");
+    if (chMem) chMem.textContent = memVal.toFixed(1) + "%";
+    var chSwap = document.getElementById("chCurSwap");
+    if (chSwap) chSwap.textContent = swapVal.toFixed(1) + "%";
+    var chDisk = document.getElementById("chCurDisk");
+    if (chDisk) chDisk.textContent = diskVal.toFixed(1) + "%";
+
+    /* 详细信息面板 */
+    var mdMA = document.getElementById("mdMemAlloc");
+    if (mdMA) mdMA.textContent = fmtBytes(memAlloc);
+    var mdMS = document.getElementById("mdMemSys");
+    if (mdMS) mdMS.textContent = fmtBytes(memSys);
+    var mdGC = document.getElementById("mdGCCnt");
+    if (mdGC) mdGC.textContent = numGC;
+    var mdGP = document.getElementById("mdGCPause");
+    if (mdGP) mdGP.textContent = lastGCPause > 0 ? (lastGCPause / 1e6).toFixed(2) + " ms" : "--";
+    var mdHO = document.getElementById("mdHeapObj");
+    if (mdHO) mdHO.textContent = heapObj.toLocaleString();
+    var mdHI = document.getElementById("mdHeapInuse");
+    if (mdHI) mdHI.textContent = fmtBytes(heapInuse);
+    var mdCC = document.getElementById("mdCPUCores");
+    if (mdCC) mdCC.textContent = cpuCores;
+    var mdLD = document.getElementById("mdLoad");
+    if (mdLD) mdLD.textContent = load1.toFixed(2) + " / " + load5.toFixed(2) + " / " + load15.toFixed(2);
+    var mdMT = document.getElementById("mdMemTotal");
+    if (mdMT) mdMT.textContent = fmtBytes(memTotal);
+    var mdMA2 = document.getElementById("mdMemAvail");
+    if (mdMA2) mdMA2.textContent = fmtBytes(memAvail);
+    var mdDT = document.getElementById("mdDiskTotal");
+    if (mdDT) mdDT.textContent = fmtBytes(diskTotal);
+    var mdDF = document.getElementById("mdDiskFree");
+    if (mdDF) mdDF.textContent = fmtBytes(diskFree);
+    var mdCP = document.getElementById("mdCurPoints");
+    if (mdCP) mdCP.textContent = chartData.cpu.length;
+
+    /* 重绘图表 */
+    drawAllCharts();
+}
+
+/* 绘制所有图表 */
+function drawAllCharts() {
+    drawChart(monitorCharts.cpu, chartData.cpu, "#3b82f6", "CPU");
+    drawChart(monitorCharts.mem, chartData.memory, "#22c55e", "内存");
+    drawChart(monitorCharts.swap, chartData.swap, "#eab308", "Swap");
+    drawChart(monitorCharts.disk, chartData.disk, "#8b5cf6", "磁盘");
+}
+
+/* 绘制单个图表 - 公有云风格 */
+function drawChart(canvas, data, color, label) {
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    var parentW = canvas.parentElement.clientWidth - 32;
+    /* 限制图表最大宽度防止一直变宽 */
+    var w = canvas.width = Math.min(parentW, 800);
+    var h = canvas.height = 180;
+
+    ctx.clearRect(0, 0, w, h);
+
+    /* 绘制背景网格 */
+    ctx.strokeStyle = "rgba(51,65,85,0.2)";
+    ctx.lineWidth = 1;
+    for (var gy = 0; gy <= 4; gy++) {
+        var yy = h - (gy * h / 4);
+        ctx.beginPath();
+        ctx.moveTo(0, yy);
+        ctx.lineTo(w, yy);
+        ctx.stroke();
+
+        /* Y轴标签 */
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "10px sans-serif";
+        ctx.fillText((gy * 25) + "%", 2, yy - 3);
+    }
+
+    if (data.length === 0) {
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "13px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("等待数据...", w / 2, h / 2);
+        ctx.textAlign = "start";
+        return;
+    }
+
+    /* 计算绘制参数 */
+    var padding = 35;
+    var drawW = w - padding;
+    var stepX = data.length > 1 ? drawW / (data.length - 1) : drawW;
+
+    /* X轴时间标签 */
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "10px sans-serif";
+    var totalPoints = data.length;
+    var labelInterval = Math.max(1, Math.floor(totalPoints / 5));
+    for (var li = 0; li < totalPoints; li += labelInterval) {
+        var lx = padding + li * stepX;
+        var secsAgo = (totalPoints - 1 - li);
+        var timeLabel = secsAgo === 0 ? "现在" : "-" + secsAgo + "s";
+        ctx.fillText(timeLabel, lx - 10, h - 2);
+    }
+
+    /* 绘制渐变填充区域 */
+    ctx.beginPath();
+    ctx.moveTo(padding, h);
+    for (var i = 0; i < data.length; i++) {
+        var x = padding + i * stepX;
+        var y = h - (data[i] / 100 * (h - 16));
+        if (i === 0) ctx.lineTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.lineTo(padding + (data.length - 1) * stepX, h);
+    ctx.closePath();
+    var gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, color + "40");
+    gradient.addColorStop(1, color + "05");
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    /* 绘制线条 */
+    ctx.beginPath();
+    for (var i = 0; i < data.length; i++) {
+        var x = padding + i * stepX;
+        var y = h - (data[i] / 100 * (h - 16));
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    /* 绘制最新值点 */
+    if (data.length > 0) {
+        var lastX = padding + (data.length - 1) * stepX;
+        var lastY = h - (data[data.length - 1] / 100 * (h - 16));
+        /* 外圈发光 */
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = color + "30";
+        ctx.fill();
+        /* 内圈 */
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+}
+
+/* 清理Go内存 */
+async function triggerGC() {
+    try {
+        showLoading();
+        await api("/metrics/gc", { method: "POST" });
+        hideLoading();
+        toast("Go内存清理已触发", "success");
+    } catch (e) {
+        hideLoading();
+        toast("清理失败: " + e.message, "error");
+    }
+}
+
+/* ========================================================
+   页面7：磁盘清理
+   ======================================================== */
+
+async function renderCleanup(container) {
+    container.innerHTML = '<div class="no-data">加载中...</div>';
+
+    try {
+        var data = await api("/cleanup/scan");
+
+        /* 统计概览卡片 */
+        var totalRecoverable = data.total_recoverable || 0;
+        var tempSize = data.temp_files && data.temp_files.size || 0;
+        var tempCount = data.temp_files && data.temp_files.count || 0;
+        var trashSize = data.trash_files && data.trash_files.size || 0;
+        var trashCount = data.trash_files && data.trash_files.count || 0;
+        var logSize = data.old_logs && data.old_logs.size || 0;
+        var logCount = data.old_logs && data.old_logs.count || 0;
+        var conflictSize = data.resolved_conflicts && data.resolved_conflicts.size || 0;
+        var conflictCount = data.resolved_conflicts && data.resolved_conflicts.count || 0;
+        var tombstoneSize = data.tombstones && data.tombstones.size || 0;
+        var tombstoneCount = data.tombstones && data.tombstones.count || 0;
+        var orphanSize = data.orphan_files && data.orphan_files.size || 0;
+        var orphanCount = data.orphan_files && data.orphan_files.count || 0;
+        var largeFiles = data.large_files || [];
+        var warnings = data.warnings || [];
+
+        var html =
+            /* 统计卡片 */
+            '<div class="stats-grid" style="margin-bottom:20px">' +
+                '<div class="stat-card"><div class="label">🧹 可回收空间</div><div class="value" style="color:var(--green)">' + formatSize(totalRecoverable) + '</div><div class="sub">低风险清理项</div></div>' +
+                '<div class="stat-card"><div class="label">📁 临时文件</div><div class="value">' + tempCount + '</div><div class="sub">' + formatSize(tempSize) + '</div></div>' +
+                '<div class="stat-card"><div class="label">🗑️ 回收站</div><div class="value">' + trashCount + '</div><div class="sub">' + formatSize(trashSize) + '</div></div>' +
+                '<div class="stat-card"><div class="label">📋 旧日志</div><div class="value">' + logCount + '</div><div class="sub">' + formatSize(logSize) + '</div></div>' +
+                '<div class="stat-card"><div class="label">⚠️ 已解决冲突</div><div class="value">' + conflictCount + '</div><div class="sub">' + formatSize(conflictSize) + '</div></div>' +
+                '<div class="stat-card"><div class="label">🪦 墓碑标记</div><div class="value">' + tombstoneCount + '</div><div class="sub">' + formatSize(tombstoneSize) + '</div></div>' +
+                '<div class="stat-card"><div class="label">👻 孤立文件</div><div class="value">' + orphanCount + '</div><div class="sub">' + formatSize(orphanSize) + '</div></div>' +
+                '<div class="stat-card"><div class="label">🧤 数据库冗余</div><div class="value">' + ((data.deleted_file_records && data.deleted_file_records.count || 0) + (data.old_sync_events && data.old_sync_events.count || 0) + (data.old_activity_logs && data.old_activity_logs.count || 0) + (data.resolved_conflict_records && data.resolved_conflict_records.count || 0)) + '</div><div class="sub">无用数据库记录</div></div>' +
+                '<div class="stat-card"><div class="label">📦 大文件(>100MB)</div><div class="value">' + largeFiles.length + '</div><div class="sub">可能影响同步</div></div>' +
+            '</div>' +
+
+            /* 操作按钮 */
+            '<div class="btn-group" style="margin-bottom:20px">' +
+                '<button class="btn btn-primary" onclick="renderCleanup(document.getElementById(\u0027contentBody\u0027))">🔄 重新扫描</button>' +
+                '<button class="btn btn-success" onclick="safeCleanup()">🧹 安全清理</button>' +
+                '<button class="btn btn-warning" onclick="deepScan()">🔬 深度扫描系统垃圾</button>' +
+                '<button class="btn btn-danger" onclick="deepClean()">💣 深度清理（确认删除）</button>' +
+                '<button class="btn btn-danger" onclick="clearAllLogs()">🗑️ 清空日志</button>' +
+            '</div>';
+
+        /* 警告信息 */
+        if (warnings && warnings.length > 0) {
+            html += '<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:14px;margin-bottom:16px">';
+            html += '<div style="font-weight:600;margin-bottom:8px;color:var(--yellow)">⚠️ 清理建议</div>';
+            for (var w = 0; w < warnings.length; w++) {
+                html += '<div style="font-size:13px;color:var(--text2);padding:2px 0">• ' + escHtml(warnings[w]) + '</div>';
+            }
+            html += '</div>';
+        }
+
+        /* 大文件列表 */
+        if (largeFiles.length > 0) {
+            html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">';
+            html += '<h4 style="margin-bottom:12px">📦 大文件列表 (>100MB)</h4>';
+            html += '<div style="max-height:200px;overflow-y:auto">';
+            for (var lf = 0; lf < largeFiles.length; lf++) {
+                var f = largeFiles[lf];
+                html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">' +
+                    '<span style="font-family:monospace">' + escHtml(f.path) + '</span>' +
+                    '<span style="color:var(--text2)">' + formatSize(f.size) + '</span>' +
+                    '</div>';
+            }
+            html += '</div></div>';
+        }
+
+        /* 系统垃圾扫描区域 */
+        html += '<div id="systemJunkSection" style="margin-top:20px"></div>';
+
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="no-data">加载清理页面失败: ' + escHtml(e.message) + '</div>';
+    }
+}
+
+/* 扫描清理项 */
+async function scanCleanup() {
+    try {
+        showLoading();
+        await api("/cleanup/scan");
+        hideLoading();
+        toast("扫描完成", "success");
+        renderCleanup(document.getElementById("contentBody"));
+    } catch (e) {
+        hideLoading();
+        toast("扫描失败: " + e.message, "error");
+    }
+}
+
+/* 安全清理 */
+async function safeCleanup() {
+    showConfirm("确定执行安全清理？将清理临时文件等安全内容。", async function() {
+        try {
+            showLoading();
+            await api("/cleanup/safe", { method: "POST" });
+            hideLoading();
+            toast("安全清理完成", "success");
+            renderCleanup(document.getElementById("contentBody"));
+        } catch (e) {
+            hideLoading();
+            toast("清理失败: " + e.message, "error");
+        }
+    });
+}
+
+/* 清理分类 */
+async function cleanCategory(catName) {
+    showConfirm("确定清理 " + catName + " ?", async function() {
+        try {
+            showLoading();
+            await api("/cleanup/clean", { method: "POST", body: { category: catName } });
+            hideLoading();
+            toast(catName + " 清理完成", "success");
+            renderCleanup(document.getElementById("contentBody"));
+        } catch (e) {
+            hideLoading();
+            toast("清理失败: " + e.message, "error");
+        }
+    });
+}
+
+/* 深度扫描系统垃圾 - 使用自定义模态确认（非浏览器confirm） */
+async function deepScan() {
+    showConfirm("深度扫描可能需要较长时间，确定继续吗？", async function() {
+        try {
+            showLoading();
+            var data = await api("/cleanup/system-scan", { method: "POST" });
+            hideLoading();
+
+            var items = data.items || data.files || data || [];
+            if (items.length === 0) {
+                showAlert("未发现系统垃圾文件");
+                return;
+            }
+
+            /* 显示系统垃圾列表 */
+            var html = '<p style="margin-bottom:12px;color:var(--text2)">发现以下系统垃圾文件:</p>';
+            var totalSize = 0;
+            html += '<div style="max-height:300px;overflow-y:auto">';
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                var sz = item.size || 0;
+                totalSize += sz;
+                html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">' +
+                    '<span>' + escHtml(item.path || item.name || "") + '</span>' +
+                    '<span style="color:var(--text2)">' + formatSize(sz) + '</span>' +
+                    '</div>';
+            }
+            html += '</div>';
+            html += '<div style="margin-top:12px;font-weight:600">总计: ' + formatSize(totalSize) + '</div>';
+
+            var footer = '<button class="btn" onclick="closeModal()">取消</button>' +
+                '<button class="btn btn-danger" onclick="cleanSystemJunk()">清理全部</button>';
+            openModal("系统垃圾扫描结果", html, footer, true);
+        } catch (e) {
+            hideLoading();
+            toast("深度扫描失败: " + e.message, "error");
+        }
+    });
+}
+
+/* 清理系统垃圾 */
+async function cleanSystemJunk() {
+    closeModal();
+    try {
+        showLoading();
+        await api("/cleanup/system-clean", { method: "POST" });
+        hideLoading();
+        toast("系统垃圾清理完成", "success");
+        renderCleanup(document.getElementById("contentBody"));
+    } catch (e) {
+        hideLoading();
+        toast("清理失败: " + e.message, "error");
+    }
+}
+
+/* 深度清理 - 清理SyncBox所有临时文件、旧日志、已解决冲突等 */
+async function deepClean() {
+    showConfirm("⚠️ 深度清理将删除所有临时文件、旧日志、已解决冲突等。确定继续吗？", async function() {
+        try {
+            showLoading();
+            var data = await api("/cleanup/deep", { method: "POST", body: { confirm: "DELETE", targets: [] } });
+            hideLoading();
+            toast("深度清理完成，释放 " + formatSize(data.freed || 0), "success");
+            renderCleanup(document.getElementById("contentBody"));
+        } catch (e) {
+            hideLoading();
+            toast("深度清理失败: " + e.message, "error");
+        }
+    });
+}
+
+/* ========================================================
+   页面8：回收站
+   ======================================================== */
+
+var trashSelected = new Set();
+
+async function renderTrash(container) {
+    trashSelected.clear();
+
+    var headerActions = document.getElementById("headerActions");
+    headerActions.innerHTML =
+        '<div class="btn-group">' +
+            '<button class="btn btn-success" onclick="trashRestoreAll()">全部恢复</button>' +
+            '<button class="btn btn-danger" onclick="trashClear()">清空回收站</button>' +
+        '</div>';
+
+    container.innerHTML = '<div class="no-data">加载中...</div>';
+
+    try {
+        var data = await api("/trash");
+        var files = data.files || data || [];
+
+        if (files.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">🗑️</div><div class="text">回收站为空</div></div>';
+            return;
+        }
+
+        var html = '<div class="trash-header">' +
+            '<button class="btn btn-sm btn-success" onclick="trashBatchRestore()" id="trashBatchRestoreBtn" style="display:none">📦 批量恢复</button>' +
+            '<button class="btn btn-sm btn-danger" onclick="trashBatchDelete()" id="trashBatchDeleteBtn" style="display:none">🗑️ 批量删除</button>' +
+            '<span style="font-size:13px;color:var(--text2)" id="trashSelectInfo">共 ' + files.length + ' 个文件</span>' +
+        '</div>';
+
+        html += '<div class="table-wrap"><table><thead><tr>' +
+            '<th style="width:40px"><input type="checkbox" onchange="toggleAllTrash(this.checked)"></th>' +
+            '<th>文件名</th><th>大小</th><th>原始路径</th><th>操作</th>' +
+            '</tr></thead><tbody>';
+
+        for (var i = 0; i < files.length; i++) {
+            var f = files[i];
+            var name = f.name || f.Name || "";
+            var path = f.path || f.Path || "";
+            var size = f.size || f.Size || 0;
+
+            html += '<tr id="trash-row-' + i + '">' +
+                '<td><input type="checkbox" onchange="toggleTrashSelect(\'' + escHtml(path) + '\', this.checked)"></td>' +
+                '<td style="font-size:13px">📄 ' + escHtml(name) + '</td>' +
+                '<td style="font-size:13px;color:var(--text2)">' + formatSize(size) + '</td>' +
+                '<td style="font-size:12px;color:var(--text2);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(path) + '</td>' +
+                '<td>' +
+                    '<div class="btn-group">' +
+                        '<button class="btn btn-sm" onclick="trashView(\'' + escHtml(path) + '\')">查看</button>' +
+                        '<button class="btn btn-sm btn-success" onclick="trashRestore(\'' + escHtml(path) + '\')">恢复</button>' +
+                        '<button class="btn btn-sm btn-danger" onclick="trashDelete(\'' + escHtml(path) + '\')">彻底删除</button>' +
+                    '</div>' +
+                '</td>' +
+                '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="no-data">加载回收站失败: ' + escHtml(e.message) + '</div>';
+    }
+}
+
+/* 全选/取消全选 */
+function toggleAllTrash(checked) {
+    var checkboxes = document.querySelectorAll('#contentBody tbody input[type="checkbox"]');
+    checkboxes.forEach(function(cb) {
+        cb.checked = checked;
+        var event = new Event('change');
+        cb.dispatchEvent(event);
+    });
+}
+
+/* 单个选择 */
+function toggleTrashSelect(path, checked) {
+    if (checked) trashSelected.add(path);
+    else trashSelected.delete(path);
+
+    var restoreBtn = document.getElementById("trashBatchRestoreBtn");
+    var deleteBtn = document.getElementById("trashBatchDeleteBtn");
+    var infoEl = document.getElementById("trashSelectInfo");
+
+    if (restoreBtn) restoreBtn.style.display = trashSelected.size > 0 ? "inline-flex" : "none";
+    if (deleteBtn) deleteBtn.style.display = trashSelected.size > 0 ? "inline-flex" : "none";
+    if (infoEl) infoEl.textContent = trashSelected.size > 0 ? "已选择 " + trashSelected.size + " 个文件" : "";
+}
+
+/* 查看回收站文件 */
+async function trashView(path) {
+    try {
+        showLoading();
+        var resp = await fetch(API_BASE + "/trash/view?path=" + encodeURIComponent(path), {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        var text = await resp.text();
+        hideLoading();
+
+        var bodyHtml = '<div class="file-viewer">' + escHtml(text) + '</div>';
+        var footer = '<button class="btn" onclick="closeModal()">关闭</button>';
+        openModal("查看: " + path.split('/').pop(), bodyHtml, footer, true);
+    } catch (e) {
+        hideLoading();
+        toast("查看失败: " + e.message, "error");
+    }
+}
+
+/* 恢复单个文件 */
+function trashRestore(path) {
+    showConfirm("确定恢复 " + path.split('/').pop() + " ?", function() {
+        showLoading();
+        api("/trash/restore", { method: "POST", body: { path: path } })
+            .then(function() {
+                hideLoading();
+                toast("文件已恢复", "success");
+                renderTrash(document.getElementById("contentBody"));
+            })
+            .catch(function(e) {
+                hideLoading();
+                toast("恢复失败: " + e.message, "error");
+            });
+    });
+}
+
+/* 彻底删除 */
+function trashDelete(path) {
+    showConfirm("确定彻底删除？此操作不可恢复！", function() {
+        showLoading();
+        api("/trash/delete", { method: "POST", body: { path: path } })
+            .then(function() {
+                hideLoading();
+                toast("文件已彻底删除", "success");
+                renderTrash(document.getElementById("contentBody"));
+            })
+            .catch(function(e) {
+                hideLoading();
+                toast("删除失败: " + e.message, "error");
+            });
+    });
+}
+
+/* 批量恢复 */
+function trashBatchRestore() {
+    if (trashSelected.size === 0) return;
+    showConfirm("确定恢复选中的 " + trashSelected.size + " 个文件？", async function() {
+        showLoading();
+        var errors = 0;
+        for (var path of trashSelected) {
+            try {
+                await api("/trash/restore", { method: "POST", body: { path: path } });
+            } catch (e) {
+                errors++;
+            }
+        }
+        hideLoading();
+        if (errors > 0) toast(errors + " 个文件恢复失败", "warning");
+        else toast("批量恢复成功", "success");
+        trashSelected.clear();
+        renderTrash(document.getElementById("contentBody"));
+    });
+}
+
+/* 批量删除 */
+function trashBatchDelete() {
+    if (trashSelected.size === 0) return;
+    showConfirm("确定彻底删除选中的 " + trashSelected.size + " 个文件？此操作不可恢复！", async function() {
+        showLoading();
+        var errors = 0;
+        for (var path of trashSelected) {
+            try {
+                await api("/trash/delete", { method: "POST", body: { path: path } });
+            } catch (e) {
+                errors++;
+            }
+        }
+        hideLoading();
+        if (errors > 0) toast(errors + " 个文件删除失败", "warning");
+        else toast("批量删除成功", "success");
+        trashSelected.clear();
+        renderTrash(document.getElementById("contentBody"));
+    });
+}
+
+/* 全部恢复 */
+function trashRestoreAll() {
+    showConfirm("确定恢复回收站中的所有文件？", function() {
+        showLoading();
+        api("/trash/restore-all", { method: "POST" })
+            .then(function() {
+                hideLoading();
+                toast("所有文件已恢复", "success");
+                renderTrash(document.getElementById("contentBody"));
+            })
+            .catch(function(e) {
+                hideLoading();
+                toast("恢复失败: " + e.message, "error");
+            });
+    });
+}
+
+/* 清空回收站 */
+function trashClear() {
+    showConfirm("确定清空回收站？所有文件将被彻底删除，此操作不可恢复！", function() {
+        showLoading();
+        api("/trash/clear", { method: "POST" })
+            .then(function() {
+                hideLoading();
+                toast("回收站已清空", "success");
+                renderTrash(document.getElementById("contentBody"));
+            })
+            .catch(function(e) {
+                hideLoading();
+                toast("清空失败: " + e.message, "error");
+            });
+    });
+}
+
+/* ========================================================
+   页面9：日志
+   ======================================================== */
+
+async function renderLogs(container) {
+    var headerActions = document.getElementById("headerActions");
+    headerActions.innerHTML = '<button class="btn btn-danger" onclick="clearAllLogs()">🗑️ 清空日志</button>';
+
+    container.innerHTML = '<div class="no-data">加载中...</div>';
+
+    try {
+        var data = await api("/logs");
+        var logs = data.logs || data || [];
+
+        if (logs.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div class="text">暂无日志</div></div>';
+            return;
+        }
+
+        var html = '<div class="table-wrap"><table><thead><tr>' +
+            '<th style="width:40px">#</th><th>时间</th><th>级别</th><th>内容</th><th style="width:60px">操作</th>' +
+            '</tr></thead><tbody>';
+
+        for (var i = 0; i < logs.length; i++) {
+            var log = logs[i];
+            var level = (log.level || log.Level || "info").toLowerCase();
+            var levelBadge = "";
+            if (level === "error") levelBadge = '<span class="badge badge-red">ERROR</span>';
+            else if (level === "warn" || level === "warning") levelBadge = '<span class="badge badge-yellow">WARN</span>';
+            else if (level === "debug") levelBadge = '<span class="badge badge-blue">DEBUG</span>';
+            else levelBadge = '<span class="badge badge-green">INFO</span>';
+
+            var msg = log.message || log.msg || log.text || log.log || "";
+            var ts = log.timestamp || log.time || log.ts || log.created_at || 0;
+            var logId = log.id || i;
+
+            html += '<tr>' +
+                '<td class="log-row-num">' + (i + 1) + '</td>' +
+                '<td style="font-size:12px;white-space:nowrap;color:var(--text2)">' + formatTime(ts) + '</td>' +
+                '<td>' + levelBadge + '</td>' +
+                '<td style="font-size:13px;max-width:500px;word-break:break-all">' + escHtml(msg) + '</td>' +
+                '<td><button class="btn btn-sm btn-danger" onclick="deleteLog(' + logId + ')">删除</button></td>' +
+                '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="no-data">加载日志失败: ' + escHtml(e.message) + '</div>';
+    }
+}
+
+/* 删除单条日志 */
+async function deleteLog(id) {
+    try {
+        await api("/logs/delete", { method: "POST", body: { id: id } });
+        toast("日志已删除", "success");
+        renderLogs(document.getElementById("contentBody"));
+    } catch (e) {
+        toast("删除失败: " + e.message, "error");
+    }
+}
+
+/* 清空所有日志 */
+function clearAllLogs() {
+    showConfirm("确定清空所有日志？此操作不可恢复。", function() {
+        showLoading();
+        api("/logs/clear", { method: "POST" })
+            .then(function() {
+                hideLoading();
+                toast("日志已清空", "success");
+                renderLogs(document.getElementById("contentBody"));
+            })
+            .catch(function(e) {
+                hideLoading();
+                toast("清空失败: " + e.message, "error");
+            });
+    });
+}
+
+/* ========================================================
+   页面10：设置
+   ======================================================== */
+
+function renderSettings(container) {
+    container.innerHTML =
+        '<div class="settings-grid">' +
+
+            /* 修改用户名 */
+            '<div class="form-section">' +
+                '<div class="form-section-title">👤 修改用户名</div>' +
+                '<div class="form-group">' +
+                    '<label for="settingsNewUser">新用户名</label>' +
+                    '<input type="text" id="settingsNewUser" placeholder="请输入新用户名">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label for="settingsUserPass">当前密码（确认身份）</label>' +
+                    '<input type="password" id="settingsUserPass" placeholder="请输入当前密码">' +
+                '</div>' +
+                '<button class="btn btn-primary" onclick="saveUsername()">保存</button>' +
+            '</div>' +
+
+            /* 修改密码 */
+            '<div class="form-section">' +
+                '<div class="form-section-title">🔑 修改密码</div>' +
+                '<div class="form-group">' +
+                    '<label for="settingsOldPass">当前密码</label>' +
+                    '<input type="password" id="settingsOldPass" placeholder="请输入当前密码">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label for="settingsNewPass">新密码</label>' +
+                    '<input type="password" id="settingsNewPass" placeholder="请输入新密码">' +
+                '</div>' +
+                '<button class="btn btn-primary" onclick="savePassword()">保存</button>' +
+            '</div>' +
+
+            /* 监听端口 */
+            '<div class="form-section">' +
+                '<div class="form-section-title">🌐 监听端口</div>' +
+                '<div class="form-group">' +
+                    '<label for="settingsListenAddr">端口地址（如 :8080）</label>' +
+                    '<input type="text" id="settingsListenAddr" placeholder=":8080">' +
+                '</div>' +
+                '<button class="btn btn-primary" onclick="saveListenAddr()">保存</button>' +
+            '</div>' +
+
+            /* 扫描间隔 */
+            '<div class="form-section">' +
+                '<div class="form-section-title">⏱️ 扫描间隔</div>' +
+                '<div class="form-group">' +
+                    '<label for="settingsScanInterval">扫描间隔（秒）</label>' +
+                    '<input type="number" id="settingsScanInterval" placeholder="60" min="1">' +
+                '</div>' +
+                '<button class="btn btn-primary" onclick="saveScanInterval()">保存</button>' +
+            '</div>' +
+
+            /* 已删除文件保留天数 */
+            '<div class="form-section">' +
+                '<div class="form-section-title">🗑️ 已删除文件保留天数</div>' +
+                '<div class="form-group">' +
+                    '<label for="settingsTrashDays">保留天数</label>' +
+                    '<input type="number" id="settingsTrashDays" placeholder="30" min="1">' +
+                '</div>' +
+                '<button class="btn btn-primary" onclick="saveTrashDays()">保存</button>' +
+            '</div>' +
+
+            /* 用户头像 */
+            '<div class="form-section">' +
+                '<div class="form-section-title">🖼️ 用户头像</div>' +
+                '<div class="form-group">' +
+                    '<label for="settingsAvatar">上传新头像</label>' +
+                    '<input type="file" id="settingsAvatar" accept="image/*">' +
+                '</div>' +
+                '<button class="btn btn-primary" onclick="saveAvatar()">保存</button>' +
+            '</div>' +
+
+        '</div>';
+
+    /* 加载当前设置 */
+    loadCurrentSettings();
+}
+
+/* 加载当前设置 */
+async function loadCurrentSettings() {
+    try {
+        var data = await api("/settings");
+        if (data.listen_addr || data.ListenAddr) {
+            var addrEl = document.getElementById("settingsListenAddr");
+            if (addrEl) addrEl.value = data.listen_addr || data.ListenAddr;
+        }
+        if (data.scan_interval || data.ScanInterval) {
+            var scanEl = document.getElementById("settingsScanInterval");
+            if (scanEl) scanEl.value = data.scan_interval || data.ScanInterval;
+        }
+        if (data.trash_retention_days || data.TrashRetentionDays) {
+            var trashEl = document.getElementById("settingsTrashDays");
+            if (trashEl) trashEl.value = data.trash_retention_days || data.TrashRetentionDays;
+        }
+    } catch (e) {
+        console.error("加载设置失败:", e);
+    }
+}
+
+/* 保存用户名 */
+async function saveUsername() {
+    var newUser = document.getElementById("settingsNewUser").value.trim();
+    var pass = document.getElementById("settingsUserPass").value;
+
+    if (!newUser) { toast("请输入新用户名", "warning"); return; }
+    if (!pass) { toast("请输入当前密码", "warning"); return; }
+
+    try {
+        showLoading();
+        await api("/change-username", { method: "POST", body: { new_username: newUser, password: pass } });
+        hideLoading();
+        toast("用户名修改成功", "success");
+    } catch (e) {
+        hideLoading();
+        toast("修改失败: " + e.message, "error");
+    }
+}
+
+/* 保存密码 */
+async function savePassword() {
+    var oldPass = document.getElementById("settingsOldPass").value;
+    var newPass = document.getElementById("settingsNewPass").value;
+
+    if (!oldPass) { toast("请输入当前密码", "warning"); return; }
+    if (!newPass) { toast("请输入新密码", "warning"); return; }
+    if (newPass.length < 4) { toast("新密码至少4个字符", "warning"); return; }
+
+    try {
+        showLoading();
+        await api("/change-password", { method: "POST", body: { old_password: oldPass, new_password: newPass } });
+        hideLoading();
+        toast("密码修改成功", "success");
+        document.getElementById("settingsOldPass").value = "";
+        document.getElementById("settingsNewPass").value = "";
+    } catch (e) {
+        hideLoading();
+        toast("修改失败: " + e.message, "error");
+    }
+}
+
+/* 保存监听端口 */
+async function saveListenAddr() {
+    var addr = document.getElementById("settingsListenAddr").value.trim();
+    if (!addr) { toast("请输入监听端口", "warning"); return; }
+
+    try {
+        showLoading();
+        await api("/settings", { method: "POST", body: { listen_addr: addr } });
+        hideLoading();
+        toast("监听端口已保存，重启后生效", "success");
+    } catch (e) {
+        hideLoading();
+        toast("保存失败: " + e.message, "error");
+    }
+}
+
+/* 保存扫描间隔 */
+async function saveScanInterval() {
+    var val = document.getElementById("settingsScanInterval").value;
+    if (!val || parseInt(val) < 1) { toast("请输入有效的扫描间隔", "warning"); return; }
+
+    try {
+        showLoading();
+        await api("/settings", { method: "POST", body: { scan_interval: parseInt(val) } });
+        hideLoading();
+        toast("扫描间隔已保存", "success");
+    } catch (e) {
+        hideLoading();
+        toast("保存失败: " + e.message, "error");
+    }
+}
+
+/* 保存保留天数 */
+async function saveTrashDays() {
+    var val = document.getElementById("settingsTrashDays").value;
+    if (!val || parseInt(val) < 1) { toast("请输入有效的保留天数", "warning"); return; }
+
+    try {
+        showLoading();
+        await api("/settings", { method: "POST", body: { trash_retention_days: parseInt(val) } });
+        hideLoading();
+        toast("保留天数已保存", "success");
+    } catch (e) {
+        hideLoading();
+        toast("保存失败: " + e.message, "error");
+    }
+}
+
+/* ========================================================
+   键盘快捷键
+   ======================================================== */
+document.addEventListener("keydown", function(e) {
+    /* ESC关闭模态框 */
+    if (e.key === "Escape") {
+        closeModal();
+    }
+    /* 回车登录 */
+    if (e.key === "Enter" && document.getElementById("loginPage").style.display !== "none") {
+        doLogin();
+    }
+});
+
+/* 点击遮罩关闭模态框 */
+document.getElementById("modalOverlay").addEventListener("click", function(e) {
+    if (e.target === this) closeModal();
+});
+
+/* ========================================================
+   窗口大小变化时重绘图表
+   ======================================================== */
+var resizeTimer = null;
+window.addEventListener("resize", function() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+        if (currentPage === "monitor") drawAllCharts();
+    }, 200);
+});
+
+/* ========================================================
+   初始化
+   ======================================================== */
+(function init() {
+    token = getToken();
+    if (token) {
+        /* 验证Token有效性 */
+        api("/overview")
+            .then(function() {
+                showMainApp();
+            })
+            .catch(function() {
+                localStorage.removeItem("sb_token");
+                token = "";
+                document.getElementById("loginPage").style.display = "flex";
+            });
+    } else {
+        document.getElementById("loginPage").style.display = "flex";
+    }
+})();
+
+/* 保存头像 */
+async function saveAvatar() {
+    var fileEl = document.getElementById("settingsAvatar");
+    if (!fileEl || !fileEl.files || fileEl.files.length === 0) {
+        toast("请先选择头像文件", "warning");
+        return;
+    }
+    var form = new FormData();
+    form.append("avatar", fileEl.files[0]);
+    try {
+        showLoading();
+        var resp = await fetch("/api/admin/avatar", { method: "POST", headers: { "Authorization": "Bearer " + token }, body: form });
+        if (!resp.ok) throw new Error(await resp.text());
+        hideLoading();
+        toast("头像已更新", "success");
+    } catch (e) {
+        hideLoading();
+        toast("保存头像失败: " + e.message, "error");
+    }
+}
+</script>
+</body>
+</html>

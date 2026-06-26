@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0f9ff"/>
+      <stop offset="100%" stop-color="#e0f2fe"/>
+    </linearGradient>
+    <linearGradient id="caccent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="cglow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+  </defs>
+  <!-- 圆角背景 -->
+  <rect width="256" height="256" rx="48" fill="url(#cbg)"/>
+  <!-- 装饰圆点 -->
+  <g opacity="0.06" fill="#0ea5e9">
+    <circle cx="40" cy="40" r="30"/>
+    <circle cx="216" cy="216" r="30"/>
+  </g>
+  <!-- 主文件夹图标 -->
+  <g transform="translate(60, 45)">
+    <!-- 文件夹背面 -->
+    <path d="M0,20 Q0,10 10,10 L45,10 L55,0 L130,0 Q140,0 140,10 L140,90 Q140,100 130,100 L10,100 Q0,100 0,90 Z" fill="url(#caccent)" opacity="0.85"/>
+    <!-- 文件夹前面 -->
+    <path d="M0,25 L0,95 Q0,105 10,105 L130,105 Q140,105 140,95 L140,25 Q140,15 130,15 L10,15 Q0,15 0,25 Z" fill="url(#caccent)"/>
+    <!-- 文件夹高光 -->
+    <path d="M0,25 Q0,15 10,15 L130,15 Q140,15 140,25 L140,35 Q140,25 130,25 L10,25 Q0,25 0,35 Z" fill="#fff" opacity="0.2"/>
+    <!-- 文件夹内文件图标 -->
+    <rect x="25" y="40" width="45" height="55" rx="4" fill="#fff" opacity="0.9"/>
+    <rect x="35" y="50" width="25" height="3" rx="1" fill="#0ea5e9" opacity="0.5"/>
+    <rect x="35" y="57" width="20" height="3" rx="1" fill="#0ea5e9" opacity="0.3"/>
+    <rect x="35" y="64" width="25" height="3" rx="1" fill="#0ea5e9" opacity="0.5"/>
+    <rect x="35" y="71" width="15" height="3" rx="1" fill="#0ea5e9" opacity="0.3"/>
+    <!-- 第二个文件 -->
+    <rect x="70" y="35" width="45" height="55" rx="4" fill="#fff" opacity="0.8"/>
+    <rect x="80" y="45" width="25" height="3" rx="1" fill="#0ea5e9" opacity="0.5"/>
+    <rect x="80" y="52" width="20" height="3" rx="1" fill="#0ea5e9" opacity="0.3"/>
+    <rect x="80" y="59" width="25" height="3" rx="1" fill="#0ea5e9" opacity="0.5"/>
+  </g>
+  <!-- 同步箭头 (上下双向) -->
+  <g transform="translate(128, 185)" opacity="0.95">
+    <!-- 上箭头 -->
+    <path d="M-25,10 L-25,-10 L-35,-10 L0,-30 L35,-10 L25,-10 L25,10 Z" fill="url(#cglow)"/>
+    <!-- 下箭头 -->
+    <path d="M25,-10 L25,10 L35,10 L0,30 L-35,10 L-25,10 L-25,-10 Z" fill="url(#cglow)" opacity="0.7"/>
+  </g>
+  <!-- SyncBox 文字 -->
+  <text x="128" y="240" text-anchor="middle" fill="#0369a1" font-family="Arial,sans-serif" font-size="16" font-weight="700">SyncBox Client</text>
+</svg>
