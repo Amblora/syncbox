@@ -1,0 +1,119 @@
+﻿name: Build Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-server:
+    name: Build Linux Server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build server
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/server/linux-amd64/syncbox-server ./cmd/server
+          cp -r web/index.html dist/server/linux-amd64/web/index.html
+          mkdir -p dist/server/linux-amd64/web
+          cp web/index.html dist/server/linux-amd64/web/index.html
+
+      - name: Upload server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-linux-amd64
+          path: dist/server/linux-amd64/
+
+  build-clients:
+    name: Build Clients (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            ext: .exe
+            ldflags: "-s -w -H windowsgui"
+            cgo: "1"
+            artifact: client-windows-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            ext: ""
+            ldflags: "-s -w"
+            cgo: "1"
+            artifact: client-darwin-arm64
+          - os: macos-13
+            goos: darwin
+            goarch: amd64
+            ext: ""
+            ldflags: "-s -w"
+            cgo: "1"
+            artifact: client-darwin-amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            ext: ""
+            ldflags: "-s -w"
+            cgo: "1"
+            artifact: client-linux-amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Build client
+        env:
+          CGO_ENABLED: "${{ matrix.cgo }}"
+          GOOS: "${{ matrix.goos }}"
+          GOARCH: "${{ matrix.goarch }}"
+        run: go build -ldflags=${{ matrix.ldflags }} -o dist/client/${{ matrix.artifact }}/syncbox-client${{ matrix.ext }} ./cmd/client
+
+      - name: Upload client artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/client/${{ matrix.artifact }}/
+
+  release:
+    name: Create Release
+    needs: [build-server, build-clients]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+
+      - name: Package artifacts
+        run: |
+          cd release
+          for dir in */; do
+            name=$(basename "$dir")
+            zip -r "../${name}.zip" "$dir"
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.zip
+          generate_release_notes: true
