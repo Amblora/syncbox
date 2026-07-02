@@ -396,7 +396,3 @@ dist/
 - WebSocket 连接需要设备认证
 - systemd 服务以最小权限运行（NoNewPrivileges、ProtectSystem）
 - 建议在生产环境配合 Nginx 反向代理并启用 HTTPS
-
-dist\server\windows-amd64\syncbox-server.exe  (26149376 bytes)
-dist\server\windows-amd64\web\index.html  (137792 bytes)
-```
