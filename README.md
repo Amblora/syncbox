@@ -397,26 +397,6 @@ dist/
 - systemd 服务以最小权限运行（NoNewPrivileges、ProtectSystem）
 - 建议在生产环境配合 Nginx 反向代理并启用 HTTPS
 
----
-
-## 许可
-
-本项目仅供学习与内部使用，如需商业授权请联系作者。
-
-
-## 本次修改后的构建与交付说明
-
-- 已修复控制台登录页结构与主应用显示问题。
-- 已修复客户端远端目录选择、刷新与重启后自动恢复。
-- 已重新生成完整 README。
-
-### 当前 dist 构建产物（已同步）
-
-```
-dist\client\windows-amd64\syncbox-client.exe  (26849280 bytes)
-dist\client\windows-amd64\syncbox-client.json  (221 bytes)
-dist\server\linux-amd64\syncbox-server  (25669794 bytes)
-dist\server\linux-amd64\web\index.html  (137792 bytes)
 dist\server\windows-amd64\syncbox-server.exe  (26149376 bytes)
 dist\server\windows-amd64\web\index.html  (137792 bytes)
 ```
