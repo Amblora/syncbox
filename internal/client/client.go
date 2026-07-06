@@ -133,6 +133,24 @@ type SyncClient struct {
 }
 
 // NewSyncClient 创建新的同步客户端
+// getStateFilePath returns state file path in writable app data dir
+func getStateFilePath() string {
+	if runtime.GOOS == "darwin" {
+		home, _ := os.UserHomeDir()
+		if home != "" {
+			dir := filepath.Join(home, "Library", "Application Support", "SyncBox")
+			os.MkdirAll(dir, 0755)
+			return filepath.Join(dir, ".syncbox_state.json")
+		}
+	}
+	exePath, err := os.Executable()
+	if err == nil {
+		return filepath.Join(filepath.Dir(exePath), ".syncbox_state.json")
+	}
+	cwd, _ := os.Getwd()
+	return filepath.Join(cwd, ".syncbox_state.json")
+}
+
 func NewSyncClient(serverURL, token, localDir string) *SyncClient {
 	// 确保 serverURL 不以 / 结尾
 	serverURL = strings.TrimRight(serverURL, "/")
@@ -152,7 +170,7 @@ func NewSyncClient(serverURL, token, localDir string) *SyncClient {
 		renamedPaths:  make(map[string]struct{}),
 		stopCh:       make(chan struct{}),
 		scanInterval: 5 * time.Minute,
-		stateFile:    filepath.Join(absDir, ".syncbox_state.json"),
+		stateFile:    getStateFilePath(),
 	}
 }
 
