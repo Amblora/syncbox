@@ -82,6 +82,12 @@ jobs:
           mkdir -p dist/client/${{ matrix.artifact }}
           go build -ldflags "${{ matrix.ldflags }}" -o dist/client/${{ matrix.artifact }}/syncbox-client${{ matrix.ext }} ./cmd/client
 
+      - name: Package macOS app bundle
+        if: runner.os == 'macOS'
+        run: |
+          chmod +x deploy/darwin/bundle.sh
+          bash deploy/darwin/bundle.sh
+
       - name: Upload client artifact
         uses: actions/upload-artifact@v4
         with:

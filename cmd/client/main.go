@@ -44,7 +44,29 @@ func generateClientName() string {
 	return fmt.Sprintf("Client-%s-%s", hostname, runtime.GOOS)
 }
 
+func getAppDataDir() string {
+	if runtime.GOOS == "darwin" {
+		home, _ := os.UserHomeDir()
+		if home != "" {
+			dir := filepath.Join(home, "Library", "Application Support", "SyncBox")
+			os.MkdirAll(dir, 0755)
+			return dir
+		}
+	}
+	exePath, err := os.Executable()
+	if err == nil {
+		return filepath.Dir(exePath)
+	}
+	cwd, _ := os.Getwd()
+	return cwd
+}
+
 func getConfigPath() string {
+	dataDir := getAppDataDir()
+	cfgPath := filepath.Join(dataDir, "syncbox-client.json")
+	if _, err := os.Stat(cfgPath); err == nil {
+		return cfgPath
+	}
 	cwd, err := os.Getwd()
 	if err == nil {
 		p := filepath.Join(cwd, "syncbox-client.json")
@@ -52,11 +74,7 @@ func getConfigPath() string {
 			return p
 		}
 	}
-	exePath, err := os.Executable()
-	if err == nil {
-		return filepath.Join(filepath.Dir(exePath), "syncbox-client.json")
-	}
-	return "syncbox-client.json"
+	return cfgPath
 }
 
 func loadConfig() AppConfig {
@@ -73,12 +91,12 @@ func loadConfig() AppConfig {
 
 func saveConfig(cfg AppConfig) error {
 	cfg.ServerURL = strings.TrimRight(cfg.ServerURL, "/")
-	cwd, _ := os.Getwd()
-	cfgPath := filepath.Join(cwd, "syncbox-client.json")
+	cfgPath := getConfigPath()
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
+	os.MkdirAll(filepath.Dir(cfgPath), 0755)
 	return os.WriteFile(cfgPath, data, 0666)
 }
 
