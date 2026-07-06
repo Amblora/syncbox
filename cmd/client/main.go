@@ -326,7 +326,14 @@ func (a *App) buildWizardTab() fyne.CanvasObject {
 
 	a.dirEntry = widget.NewEntry()
 	a.dirEntry.SetPlaceHolder("本地同步目录路径")
-	a.dirEntry.SetText(a.cfg.LocalDir)
+	defaultDir := a.cfg.LocalDir
+	if defaultDir == "" && runtime.GOOS == "darwin" {
+		home, _ := os.UserHomeDir()
+		if home != "" {
+			defaultDir = filepath.Join(home, "SyncFiles")
+		}
+	}
+	a.dirEntry.SetText(defaultDir)
 
 	browseBtn := widget.NewButton("浏览...", func() {
 		dialog.ShowFolderOpen(func(lu fyne.ListableURI, err error) {

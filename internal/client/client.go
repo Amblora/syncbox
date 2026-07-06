@@ -910,8 +910,8 @@ func (c *SyncClient) downloadFile(relPath string) error {
 	// 确保目标目录存在
 	absPath := filepath.Join(c.LocalDir, filepath.FromSlash(relPath))
 	dir := filepath.Dir(absPath)
-	if err := os.MkdirAll(dir, 0777); err != nil {
-		return fmt.Errorf("创建目录失败: %w", err)
+	if err := ensureDirAccess(dir); err != nil {
+		return fmt.Errorf("目录权限检查失败: %w", err)
 	}
 
 	// 写入临时文件后重命名，保证原子性
@@ -1584,6 +1584,22 @@ func fixWindowsPermissions(dir string) {
 	// 隐藏子进程窗口，防止弹出cmd窗口
 	cmd.SysProcAttr = getHideWindowAttr()
 	cmd.Run()
+}
+
+func ensureDirAccess(dir string) error {
+	if err := os.MkdirAll(dir, 0777); err != nil {
+		return err
+	}
+	testFile := filepath.Join(dir, ".syncbox_access_test")
+	if err := os.WriteFile(testFile, []byte("test"), 0666); err != nil {
+		if runtime.GOOS == "darwin" {
+			log.Printf("[权限] macOS: 目录 %s 无写入权限，请在 系统设置 > 隐私与安全性 > 完全磁盘访问权限 中授权终端", dir)
+			exec.Command("open", dir).Run()
+		}
+		return fmt.Errorf("目录无写入权限: %s (macOS请在系统设置中授权)", dir)
+	}
+	os.Remove(testFile)
+	return nil
 }
 // GetSpeedStats 获取当前上传/下载速度（字节/秒）并重置计数器
 func (c *SyncClient) GetSpeedStats() (uploadBps, downloadBps int64) {
