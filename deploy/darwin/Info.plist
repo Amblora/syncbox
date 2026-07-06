@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>SyncBox</string>
+    <key>CFBundleDisplayName</key>
+    <string>SyncBox</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.syncbox.client</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleExecutable</key>
+    <string>syncbox-client</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleSignature</key>
+    <string>SYBX</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    <key>LSUIElement</key>
+    <false/>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>SyncBox needs access to your files to sync them with the server.</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>SyncBox needs access to your Desktop folder to sync files.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>SyncBox needs access to your Downloads folder to sync files.</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+</dict>
+</plist>
